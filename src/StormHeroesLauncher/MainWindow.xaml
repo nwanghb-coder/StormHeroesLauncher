@@ -1,0 +1,35 @@
+<Window x:Class="StormHeroesLauncher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Icon="/StormHeroesLauncher;component/Assets/Launcher.ico" Title="StormHeroesLauncher" Width="880" Height="620"
+        MinWidth="660" MinHeight="480" WindowStartupLocation="CenterScreen">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Text="{Binding Status}" FontSize="20" FontWeight="SemiBold"
+                   TextWrapping="Wrap" AutomationProperties.AutomationId="UuStatus" />
+        <StackPanel Grid.Row="1" Margin="0,14,0,0">
+            <TextBlock Text="{Binding BoostStatus}" FontSize="18" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding BoostDetails}" Margin="0,8,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+        <TextBlock Grid.Row="2" Text="请在适合 UU 加速的网络环境中手动测试；本工具不会调整 VPN 或网络设置。"
+                   TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#595959" />
+        <WrapPanel Grid.Row="3" Margin="0,16">
+            <Button Content="检测 / 启动 UU" Click="CheckUu_Click" IsEnabled="{Binding CanCheck}" Padding="12,8" Margin="0,0,8,8" />
+            <Button Content="启动风暴英雄加速" Click="StartBoost_Click" IsEnabled="{Binding CanBoost}" Padding="12,8" Margin="0,0,8,8" />
+            <Button Content="刷新加速状态" Click="RefreshBoost_Click" IsEnabled="{Binding CanBoost}" Padding="12,8" Margin="0,0,8,8" />
+            <Button Content="停止风暴英雄加速" Click="StopBoost_Click" IsEnabled="{Binding CanBoost}" Padding="12,8" Margin="0,0,8,8" />
+            <Button Content="取消等待" Click="Cancel_Click" IsEnabled="{Binding CanCancel}" Padding="12,8" Margin="0,0,8,8" />
+        </WrapPanel>
+        <TextBox Grid.Row="4" Text="{Binding LogText, Mode=OneWay}" IsReadOnly="True"
+                 TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                 AutomationProperties.Name="运行日志" AutomationProperties.AutomationId="RunLog" />
+        <TextBlock Grid.Row="5" Text="{Binding LogPath}" TextWrapping="Wrap" Margin="0,10,0,0" FontSize="12" />
+    </Grid>
+</Window>

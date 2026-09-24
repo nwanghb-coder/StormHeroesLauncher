@@ -1,0 +1,10 @@
+{
+  "CliPath": "E:\\CodexProjects\\UU-CLI-Investigation\\netease-uu-booster\\bin\\uu-cli.exe",
+  "GameId": "569cbb26a26c753e42982639",
+  "ZoneId": "5e84381b04c2150cc09e485e",
+  "ServerId": "57a3ec73a26c752383c56217",
+  "CommandTimeoutSeconds": 20,
+  "ReadinessTimeoutSeconds": 15,
+  "BoostTimeoutSeconds": 30,
+  "PollIntervalMilliseconds": 1000
+}

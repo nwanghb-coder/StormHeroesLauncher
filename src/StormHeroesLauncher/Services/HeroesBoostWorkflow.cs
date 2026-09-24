@@ -1,0 +1,58 @@
+using StormHeroesLauncher.Configuration;
+using StormHeroesLauncher.Models;
+
+namespace StormHeroesLauncher.Services;
+
+public sealed class HeroesBoostWorkflow(Func<CancellationToken, Task<string>> ensureUu,
+    IUuCliService cli, UuCliOptions options, AppLogger logger)
+{
+    public async Task<HeroesBoostStatus> StartAsync(Action<string> reportUu, CancellationToken token)
+    {
+        reportUu("UU 加速器：正在检测 / 等待启动…");
+        var result = await ensureUu(token);
+        reportUu(result);
+        if (result is not ("UU 加速器：已运行" or "UU 加速器：启动成功"))
+            throw new InvalidOperationException(result);
+        token.ThrowIfCancellationRequested();
+        await PollAsync(readyOnly: true, token);
+        // Never retry start automatically: an uncertain response may already have changed acceleration.
+        await cli.StartHeroesBoostAsync(token);
+        return await PollAsync(readyOnly: false, token);
+    }
+
+    public Task<HeroesBoostStatus> WaitStoppedAsync(CancellationToken token) =>
+        PollAsync(readyOnly: false, token, stopping: true);
+
+    private async Task<HeroesBoostStatus> PollAsync(bool readyOnly, CancellationToken token, bool stopping = false)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(readyOnly ? options.ReadinessTimeoutSeconds : options.BoostTimeoutSeconds));
+        try
+        {
+            while (true)
+            {
+                timeout.Token.ThrowIfCancellationRequested();
+                try
+                {
+                    var status = await cli.GetHeroesBoostStatusAsync(timeout.Token);
+                    if (readyOnly || (stopping ? !status.IsBoosting && status.Status == "not_boosting" : status.IsReady))
+                    {
+                        logger.Write(readyOnly ? "UU CLI 已就绪。" : stopping ? "已确认目标游戏停止加速。" : "已确认目标游戏加速就绪。");
+                        return status;
+                    }
+                }
+                catch (UuCliException ex) when (ex.Kind is CliFailureKind.Rejected or CliFailureKind.Timeout)
+                {
+                    logger.Write($"等待状态期间暂时失败：{ex.Kind}；仅重试 status。");
+                }
+                await Task.Delay(options.PollIntervalMilliseconds, timeout.Token);
+            }
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        {
+            var message = readyOnly ? "UU 加速器尚未就绪，等待超时。" : "加速状态确认超时，请刷新状态确认实际结果。";
+            logger.Write(message);
+            throw new TimeoutException(message);
+        }
+    }
+}
