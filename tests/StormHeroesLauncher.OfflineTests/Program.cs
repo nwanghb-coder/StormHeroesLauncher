@@ -273,6 +273,7 @@ await LaunchProgressTests.Run(logger, Assert);
 await HeroesReadinessTests.Run(logger, Assert);
 await WarmCancelTests.Run(logger, Assert);
 #if DEVELOPER_OBSERVER
+await BattleNetStartProbeTests.Run(Assert);
 await ObserverTests.Run(Assert);
 await UuStartupObserverTests.Run(Assert);
 #endif

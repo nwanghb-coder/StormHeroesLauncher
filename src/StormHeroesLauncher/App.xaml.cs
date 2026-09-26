@@ -10,6 +10,12 @@ public partial class App : Application
     {
         base.OnStartup(e);
 #if DEVELOPER_OBSERVER
+        if (e.Args.FirstOrDefault() == "--test-battlenet-start")
+        {
+            int result = 3;
+            try { result = await Task.Run(() => Observer.DeveloperBattleNetStartProbe.RunAsync(e.Args)); } catch { }
+            Shutdown(result); return; // Explicit research only: bypass production workflow/settings/helper.
+        }
         if (e.Args.FirstOrDefault() == "--observer-tail")
         {
             int result = 3;
@@ -24,7 +30,7 @@ public partial class App : Application
             Shutdown(result); return; // No settings, launch mutex, UU, Battle.net or elevated helper.
         }
 #endif
-        if (e.Args.FirstOrDefault() is "--test-heroes-prep" or "--observer-tail") { Shutdown(2); return; }
+        if (e.Args.FirstOrDefault() is "--test-heroes-prep" or "--observer-tail" or "--test-battlenet-start") { Shutdown(2); return; }
         bool shiftHeld = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
         var logger = new AppLogger();
         using var cancellation = new CancellationTokenSource();
