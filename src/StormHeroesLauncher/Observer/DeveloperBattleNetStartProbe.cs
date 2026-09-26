@@ -12,7 +12,8 @@ namespace StormHeroesLauncher.Observer;
 public static class DeveloperBattleNetStartProbe
 {
     public const int ObservationMilliseconds = 30000;
-    private sealed record Owned(HeroesProcessIdentity Identity, IntPtr Handle);
+    public const string CompletionMessage = "Observation complete.";
+    public const string RunningMessage = "Please exit Battle.net from the system tray and wait for Agent to stop before testing again.";
     public static Task<int> RunAsync(string[] args) => Task.Factory.StartNew(() =>
     {
         // Keep the existing workflow mutex on this dedicated thread for the full research run.
@@ -20,7 +21,7 @@ public static class DeveloperBattleNetStartProbe
         using var gate = new Mutex(false,@"Local\StormHeroesLauncher.Alpha.LaunchWorkflow");
         bool acquired;
         try { acquired = gate.WaitOne(0); } catch (AbandonedMutexException) { acquired = true; }
-        if (!acquired) return 2;
+        if (!acquired) { Console.WriteLine("Please exit the current HOSLauncher workflow before testing."); return 2; }
         try { return RunCoreAsync(args).GetAwaiter().GetResult(); }
         finally { gate.ReleaseMutex(); }
     }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
@@ -39,18 +40,19 @@ public static class DeveloperBattleNetStartProbe
         string installRoot = Path.GetDirectoryName(path)!;
         string agentRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Battle.net", "Agent");
         var before = Native.Processes();
-        if (before.Any(p => BattleNetProbePolicy.RelatedName(p.Name)))
-        { Log("Refused", new { reason = "BattleNetOrAgentNotFullyClosed", count = before.Count(p => BattleNetProbePolicy.RelatedName(p.Name)) }); return 2; }
+        if (before.Any(p => BattleNetProbePolicy.RelatedName(p.Name) && Native.RunningState(p.Pid) != false))
+        { Log("Refused", new { reason = "BattleNetOrAgentNotFullyClosed" }); Console.WriteLine(RunningMessage); return 2; }
         Log("ProbePrepared", new { strategy = strategy.ToString(), executableVersion = FileVersionInfo.GetVersionInfo(path).FileVersion,
             observationMs = ObservationMilliseconds, postLaunchHide = false, sampling = "10ms for 5s then 50ms; request/sample evidence only", nativeTrayFunctional = "NotProvenByMetadata" });
-        var owned = new Dictionary<uint, Owned>();
+        var observed = new Dictionary<uint, HeroesProcessIdentity>();
+        var unreadable = new HashSet<uint>();
+        uint session = (uint)Process.GetCurrentProcess().SessionId;
         var priorWindows = new Dictionary<(uint,long,long), ProbeWindow>();
         var measurement = new BattleNetProbeMeasurements();
-        bool ambiguous = false, failed = false, cleanup = true;
+        bool failed = false;
         DateTimeOffset launchT0 = DateTimeOffset.UtcNow;
         long launchFileTime = launchT0.UtcDateTime.ToFileTimeUtc();
         double launchMs = clock.Elapsed.TotalMilliseconds, launchReturnedMs = 0, firstSampleMs = 0;
-        var beforeIds = before.Select(p => p.Pid).ToHashSet();
         Process? managedRoot = null; IntPtr nativeRoot = IntPtr.Zero;
         uint rootPid = 0;
         try
@@ -72,8 +74,8 @@ public static class DeveloperBattleNetStartProbe
             launchReturnedMs = clock.Elapsed.TotalMilliseconds - launchMs;
             var root = Native.Identity(rootHandle, rootPid, (uint)Environment.ProcessId);
             if (root == null || !root.Path.Equals(path, StringComparison.OrdinalIgnoreCase) || root.Created < launchFileTime || root.Session != (uint)Process.GetCurrentProcess().SessionId)
-                throw new InvalidOperationException("Root identity unavailable; manual cleanup required");
-            owned.Add(root.Pid, new(root, rootHandle));
+                throw new InvalidOperationException("Root metadata unavailable");
+            observed.Add(root.Pid, root);
             Log("ProcessStarted", new { Strategy = strategy.ToString(), ProcessLaunchT0 = launchT0, LaunchReturnedMs = launchReturnedMs,
                 root.Pid, root.Created, root.Session, root.Path, startTimeUtc = DateTime.FromFileTimeUtc(root.Created) });
             bool first = true;
@@ -93,89 +95,45 @@ public static class DeveloperBattleNetStartProbe
             }
             Discover();
             measurement.Sample(clock.Elapsed.TotalMilliseconds - launchMs, ReadWindows());
-            bool alive = owned.Values.Any(p => Path.GetFileName(p.Identity.Path).Equals("Battle.net.exe", StringComparison.OrdinalIgnoreCase) && Native.Live(p));
+            bool alive = observed.Values.Any(p => Path.GetFileName(p.Path).Equals("Battle.net.exe", StringComparison.OrdinalIgnoreCase) && HeroesWindowProbe.Same(p,HeroesWindowProbe.ReadProcess(p.Pid)));
             DateTimeOffset? Stamp(double? ms) => ms.HasValue ? launchT0.AddMilliseconds(ms.Value) : null;
             Log("MeasurementSummary", new { Strategy = strategy.ToString(), ProcessLaunchT0 = launchT0,
                 FirstQtVisibleT = Stamp(measurement.FirstQtVisibleMs), FirstChromeVisibleT = Stamp(measurement.FirstChromeVisibleMs),
                 FirstHiddenOrMinimizedT = Stamp(measurement.FirstHiddenOrMinimizedMs),
                 measurement.FirstQtVisibleMs, measurement.FirstChromeVisibleMs, measurement.FirstHiddenOrMinimizedMs,
                 measurement.QtVisibleDurationMs, measurement.ChromeVisibleDurationMs, measurement.QtRightCensored, measurement.ChromeRightCensored,
-                measurement.MaximumSampleGapMs, ProcessStillRunning = alive, measurement.StableChromiumProxy,
+                measurement.MaximumSampleGapMs, ProcessStillRunning = alive, measurement.StableChromiumProxy, MetadataComplete = unreadable.Count == 0,
                 LoginEvidence = "Stable nonhung enabled ownerless Chromium is a bootstrap proxy; authenticated login not inspected",
                 LaunchReturnedMs = launchReturnedMs, FirstSampleMs = firstSampleMs, DurationBasis = "SampleHeldUnion_NotPhysicalFrames; initial launch-to-first-sample gap unobserved" });
         }
-        catch (Exception ex) { failed = true; Log("Failure", new { errorType = ex.GetType().Name, manualCleanupRequired = owned.Count == 0 }); }
+        catch (Exception ex) { failed = true; Log("Failure", new { errorType = ex.GetType().Name }); }
         finally
         {
-            try
-            {
-                Discover();
-                // Observation is over. Only now request native tray/normal-close behavior, once per verified Chrome HWND.
-                foreach (var w in ReadWindows().Where(w => w.Ownerless && w.ClassName.StartsWith("Chrome_WidgetWin_", StringComparison.Ordinal)))
-                {
-                    if (!owned.TryGetValue(w.Pid, out var p) || !Native.Live(p)) continue;
-                    var fresh = ReadWindows().FirstOrDefault(n => n.Pid == w.Pid && n.Created == w.Created && n.Hwnd == w.Hwnd && n.ClassName == w.ClassName && n.Ownerless);
-                    if (fresh != null) Log("CleanupCloseRequested", new { w.Pid, w.Hwnd, accepted = Native.SafeClose(fresh,p) });
-                }
-                await Task.Delay(3000).ConfigureAwait(false);
-                Discover();
-                var afterClose = ReadWindows();
-                bool chromeAlive = owned.Values.Any(p => Path.GetFileName(p.Identity.Path).Equals("Battle.net.exe", StringComparison.OrdinalIgnoreCase) && Native.Live(p));
-                Log("TrayProxyAfterObservation", new { processRunning = chromeAlive,
-                    chromeVisible = afterClose.Any(w => w.ClassName.StartsWith("Chrome_WidgetWin_", StringComparison.Ordinal) && w.Visible && !w.Minimized),
-                    interpretation = "Hidden Chromium plus live process after WM_CLOSE is a tray proxy only; tray icon/menu interaction not tested" });
-                // Termination authority is a retained handle + creation/path/session + proven test ancestry, never PID/name alone.
-                // Stop the proven root before its workers so a live parent cannot replace terminated workers.
-                foreach (var identity in BattleNetProbePolicy.CleanupOrder(owned.Values.Select(p => p.Identity),rootPid).ToArray())
-                {
-                    var p = owned[identity.Pid];
-                    if (Native.WaitForSingleObject(p.Handle, 0) == 0) continue;
-                    if (!Native.Live(p)) { cleanup = false; Log("CleanupSkipped", new { p.Identity.Pid, reason = "IdentityUncertain" }); continue; }
-                    bool terminated = Native.TerminateProcess(p.Handle, 0);
-                    bool exited = terminated && Native.WaitForSingleObject(p.Handle, 250) == 0;
-                    cleanup &= exited;
-                    Log("CleanupExactProcess", new { p.Identity.Pid, p.Identity.Created, terminated, exited });
-                }
-                foreach (var remaining in Native.Processes().Where(p => BattleNetProbePolicy.RelatedName(p.Name)))
-                {
-                    // Toolhelp can retain an exited entry while our identity handle is open.
-                    // Query actual process liveness; inaccessible identities remain a stop condition.
-                    bool? running = Native.RunningState(remaining.Pid);
-                    if (running != false) cleanup = false;
-                    Log("FinalProcessCheck",new { remaining.Pid,remaining.Name,running });
-                }
-            }
-            catch (Exception ex) { cleanup = false; Log("CleanupFailure", new { errorType = ex.GetType().Name }); }
-            foreach (var p in owned.Values.Where(p => p.Handle != nativeRoot && (managedRoot == null || p.Identity.Pid != (uint)managedRoot.Id))) Native.CloseHandle(p.Handle);
+            // Release only our inspection handles. Never close windows, terminate processes or change state.
             managedRoot?.Dispose(); if (nativeRoot != IntPtr.Zero) Native.CloseHandle(nativeRoot);
-            Log("ProbeFinished", new { failed, ambiguous, cleanupComplete = cleanup, manualCleanupRequired = ambiguous || !cleanup });
+            Log("ProbeFinished", new { failed, automaticCleanup = false, BattleNetLeftRunning = true });
         }
-        return !failed && !ambiguous && cleanup ? 0 : 4;
+        Console.WriteLine(failed ? "Observation failed. Battle.net was left untouched; inspect the report." : CompletionMessage);
+        return failed ? 4 : 0;
 
         void Discover()
         {
-            var candidates = Native.Processes().Where(p => BattleNetProbePolicy.RelatedName(p.Name) && !owned.ContainsKey(p.Pid)).ToArray();
-            for (int depth = 0; depth < 8; depth++)
+            observed.Clear();
+            foreach (var candidate in Native.Processes().Where(p => BattleNetProbePolicy.RelatedName(p.Name)))
             {
-                bool added = false;
-                foreach (var candidate in candidates)
+                var identity = HeroesWindowProbe.ReadProcess(candidate.Pid,candidate.Parent);
+                if (identity == null)
                 {
-                    if (owned.ContainsKey(candidate.Pid) || !owned.TryGetValue(candidate.Parent, out var parent)) continue;
-                    if (owned.Count >= 64) throw new InvalidDataException("Process bound");
-                    IntPtr handle = Native.OpenProcess(0x1000 | 0x100000 | 1, false, candidate.Pid);
-                    if (handle == IntPtr.Zero) continue;
-                    var identity = Native.Identity(handle, candidate.Pid, candidate.Parent);
-                    bool parentTimes = HeroesWindowProbe.GetProcessTimes(parent.Handle, out _, out long exit, out _, out _);
-                    if (identity != null && parentTimes && BattleNetProbePolicy.Owns(identity, parent.Identity, exit, launchFileTime, beforeIds, installRoot, agentRoot))
-                    { owned.Add(identity.Pid, new(identity, handle)); added = true; Log("OwnedProcess", identity); }
-                    else Native.CloseHandle(handle);
+                    if (Native.RunningState(candidate.Pid) != false && unreadable.Add(candidate.Pid))
+                        Log("MetadataUnavailable",new { candidate.Pid,candidate.Name });
+                    continue;
                 }
-                if (!added) break;
+                if (BattleNetProbePolicy.Observe(identity,session,launchFileTime,installRoot,agentRoot))
+                    observed.Add(identity.Pid,identity);
+                if (observed.Count >= 128) throw new InvalidDataException("Observation process limit");
             }
-            foreach (var candidate in candidates.Where(p => !owned.ContainsKey(p.Pid)))
-                if (!ambiguous) { ambiguous = true; Log("UnprovenProcess", new { candidate.Pid, candidate.Name, reason = "NoProvenLiveParentChain_ManualCleanupOnly" }); }
         }
-        IReadOnlyList<ProbeWindow> ReadWindows() => HeroesWindowProbe.Windows(owned.Values.Where(Native.Live).Select(p => p.Identity).ToArray())
+        IReadOnlyList<ProbeWindow> ReadWindows() => HeroesWindowProbe.Windows(observed.Values.ToArray())
             .Where(w => w.ClassName == "Qt5151QWindowIcon" || w.ClassName.StartsWith("Chrome_WidgetWin_", StringComparison.Ordinal))
             .Select(w => new ProbeWindow(w.Process.Pid,w.Process.Created,w.Hwnd,w.ClassName,w.Visible,
                 (w.Style & 0x20000000) != 0,w.Enabled,w.Hung,w.Ownerless)).ToArray();
@@ -207,21 +165,12 @@ public static class DeveloperBattleNetStartProbe
                 QueryFullProcessImageName(handle,0,path,ref length) && ProcessIdToSessionId(pid,out uint session)
                 ? new(pid,parent,created,session,path.ToString()) : null;
         }
-        internal static bool Live(Owned p) => WaitForSingleObject(p.Handle,0) == 258 && HeroesWindowProbe.Same(p.Identity,Identity(p.Handle,p.Identity.Pid,p.Identity.ParentPid));
         internal static bool? RunningState(uint pid)
         {
             IntPtr handle = OpenProcess(0x1000 | 0x100000,false,pid);
             if (handle == IntPtr.Zero) return Marshal.GetLastWin32Error() == 87 ? false : null;
             try { return WaitForSingleObject(handle,0) switch { 0 => false, 258 => true, _ => null }; }
             finally { CloseHandle(handle); }
-        }
-        internal static bool SafeClose(ProbeWindow w, Owned p)
-        {
-            if (!Live(p)) return false;
-            var hwnd = new IntPtr(w.Hwnd); GetWindowThreadProcessId(hwnd,out uint pid);
-            var cls = new StringBuilder(256); GetClassName(hwnd,cls,cls.Capacity);
-            return pid == p.Identity.Pid && GetWindow(hwnd,4) == IntPtr.Zero && cls.ToString() == w.ClassName &&
-                w.ClassName.StartsWith("Chrome_WidgetWin_",StringComparison.Ordinal) && PostMessage(hwnd,0x10,IntPtr.Zero,IntPtr.Zero);
         }
         internal static StartupInfo HiddenStartupInfo() => new() { Size = (uint)Marshal.SizeOf<StartupInfo>(), Flags = 1, ShowWindow = 0 };
         [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] internal struct StartupInfo
@@ -238,10 +187,5 @@ public static class DeveloperBattleNetStartProbe
         [DllImport("kernel32.dll")] private static extern bool ProcessIdToSessionId(uint pid,out uint session);
         [DllImport("kernel32.dll",EntryPoint="QueryFullProcessImageNameW",CharSet=CharSet.Unicode)] private static extern bool QueryFullProcessImageName(IntPtr handle,uint flags,StringBuilder path,ref uint length);
         [DllImport("kernel32.dll")] internal static extern uint WaitForSingleObject(IntPtr handle,uint ms);
-        [DllImport("kernel32.dll")] internal static extern bool TerminateProcess(IntPtr handle,uint code);
-        [DllImport("user32.dll",EntryPoint="PostMessageW")] internal static extern bool PostMessage(IntPtr hwnd,uint message,IntPtr w,IntPtr l);
-        [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hwnd,out uint pid);
-        [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr hwnd,uint command);
-        [DllImport("user32.dll",EntryPoint="GetClassNameW",CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr hwnd,StringBuilder text,int count);
     }
 }

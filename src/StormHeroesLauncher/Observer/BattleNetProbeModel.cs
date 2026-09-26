@@ -9,8 +9,6 @@ public sealed record ProbeWindow(uint Pid, long Created, long Hwnd, string Class
 
 public static class BattleNetProbePolicy
 {
-    public static IEnumerable<HeroesProcessIdentity> CleanupOrder(IEnumerable<HeroesProcessIdentity> known, uint rootPid) =>
-        known.OrderBy(p => p.Pid == rootPid ? 0 : 1).ThenByDescending(p => p.Created);
     public static ProcessStartInfo StartInfo(string path, BattleNetProbeStrategy strategy) => new(path)
     {
         UseShellExecute = false, WorkingDirectory = System.IO.Path.GetDirectoryName(path)!,
@@ -24,11 +22,9 @@ public static class BattleNetProbePolicy
         (path.StartsWith(installRoot.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase) ||
          System.IO.Path.GetFileName(path).Equals("Agent.exe", StringComparison.OrdinalIgnoreCase) &&
          path.StartsWith(agentRoot.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
-    public static bool Owns(HeroesProcessIdentity child, HeroesProcessIdentity parent, long parentExit,
-        long launch, IReadOnlySet<uint> before, string installRoot, string agentRoot) =>
-        child.ParentPid == parent.Pid && child.Session == parent.Session && child.Created >= launch &&
-        child.Created >= parent.Created && (parentExit == 0 || child.Created <= parentExit) &&
-        !before.Contains(child.Pid) && AllowedPath(child.Path, installRoot, agentRoot);
+    public static bool Observe(HeroesProcessIdentity process, uint session, long launch, string installRoot, string agentRoot) =>
+        process.Session == session && process.Created >= launch && AllowedPath(process.Path,installRoot,agentRoot);
+
 }
 
 // Sample-held union durations: concurrent windows of one class do not multiply exposure.
