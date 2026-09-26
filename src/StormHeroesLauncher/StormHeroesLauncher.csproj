@@ -8,10 +8,10 @@
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.2.0-friend-test</Version><InformationalVersion>0.2.0-friend-test</InformationalVersion><ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.3.0-dev.1</Version><InformationalVersion>0.3.0-dev.1</InformationalVersion><ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
-    <AssemblyMetadata Include="FriendBuildId" Value="friend-0.2-release" />
+    <AssemblyMetadata Include="BuildId" Value="0.3.0-dev.1" />
     <Resource Include="Assets\Launcher.ico" />
     <PackageReference Include="SharpCompress" Version="[0.50.4]" />
     <None Update="uu-cli.settings.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />

@@ -13,7 +13,7 @@ public sealed class SettingsWindow : Window
     public SettingsWindow(LauncherSettings settings, SettingsStore store, PathDiscovery discovery, UuCliPreparation preparation, AppLogger logger, string? error)
     {
         Icon=LauncherIcon.Load();
-        Title = "StormHeroesLauncher 0.2.0-friend-test — 设置"; Width = 760; SizeToContent = SizeToContent.Height; WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        Title = $"StormHeroesLauncher {AboutSafetyContent.Version} — 设置"; Width = 760; SizeToContent = SizeToContent.Height; WindowStartupLocation = WindowStartupLocation.CenterScreen;
         var panel = new StackPanel { Margin = new Thickness(20) }; Content = panel;
         panel.Children.Add(new TextBlock { Text = "请先在 UU 和战网完成登录并启用记住/自动登录。保存后退出，不会启动游戏。", TextWrapping = TextWrapping.Wrap });
         var labels = new[] { "UU 启动器 (uu_launcher.exe)", "高级：官方组件路径（通常无需更改）", "Battle.net.exe", "HeroesSwitcher_x64.exe (Support64)" };

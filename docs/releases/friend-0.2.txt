@@ -1,0 +1,21 @@
+Release: StormHeroesLauncher-Friend-0.2 (trusted friend test)
+Version: 0.2.0-friend-test
+Build ID: friend-0.2-release-9e7651132d9a
+Release packaging completed: 2026-09-24T00:11:15.8370324+08:00
+Main built during this freeze; SDK 10.0.401; bundled runtime 10.0.12.
+ZIP filename: StormHeroesLauncher-Friend-0.2.zip
+ZIP bytes: 94961541
+ZIP SHA-256: A9269BF0ACAB188265290936663117A8712A732EA65E45903AB0A9898EAD1514
+Main EXE SHA-256: CEDB20D5D4000689DFBB1C097CDE21A6D751E677995E8A13D972B10E8458E3B5
+Helper SHA-256: 85F5831B2FF5F83EC1847FE31AA86B71F5E5E3DEE4327A0C70519818E05D2754
+Main EXE bytes: 142418322
+Helper bytes: 73586547
+Uncompressed runtime package bytes: 216004869
+Layout: StormHeroesLauncher.exe; app/StormHeroesLauncher.WindowHelper.exe
+Freeze delta: only main FriendBuildId assembly metadata; helper identical to accepted v17.
+Validation: Release x64 offline publish succeeded; exact two-file layout; both self-contained x64 bundles; six icon resources verified; ZIP entries and decompressed SHA-256 match package; no PDB/source/tests/developer files/NetEase CLI; configured developer-path byte strings absent; About identity source unchanged and correct.
+Build ID derived statically from assembly metadata and module MVID; no launcher execution.
+Runtime acceptance: user-confirmed v17 baseline. No real apps or UAC run during freeze. No network required. No test suite rerun.
+Known limitations: Windows 10 x64 manually tested; Windows 11 unverified. UU/Battle.net close-to-tray settings remain manual. Startup flashes may occur. Heroes preparation dialog intentionally visible. Settings redesign/progress UI/multi-accelerator support deferred. Neutral temporary icon. No public Authenticode authenticity system; hashes only provide release integrity references. Local logs may contain paths/configuration and require review before sharing.
+Developer-only non-blocker: AboutSafetyTests.cs still expects v17 Build ID; update expectation in next development stage before rerunning that suite. No runtime effect.
+Handoff: project-root PROJECT-STATE.md (excluded from runtime ZIP).

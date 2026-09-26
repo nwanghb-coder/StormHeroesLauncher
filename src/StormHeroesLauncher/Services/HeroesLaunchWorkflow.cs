@@ -17,7 +17,7 @@ public sealed class HeroesLaunchWorkflow(
             return;
         }
         validateInstallation();
-        logger.Write("Friend Test 0.2：确保 UU 运行并启动目标游戏加速。");
+        logger.Write($"StormHeroesLauncher {AboutSafetyContent.Version}：确保 UU 运行并启动目标游戏加速。");
         var status = await startBoost(token);
         if (!status.IsReady) throw new InvalidOperationException("目标游戏尚未确认 isBoosting=true 且 status=boosting。");
         token.ThrowIfCancellationRequested();

@@ -1,5 +1,31 @@
-# Current: Friend Test 0.2 local acceptance candidate
-See [FRIEND-TEST-README.md](FRIEND-TEST-README.md). Not approved for friend distribution until manual visual acceptance. Historical MVP/Alpha notes follow.
+# StormHeroesLauncher — Stage 2: Feature Complete
+
+Current development version: **0.3.0-dev.1**, on `stage2-feature-complete`.
+This is the Stage 2 entry baseline; observer and progress UI features are not implemented yet.
+
+See [PROJECT-STATE.md](PROJECT-STATE.md) for current behavior and safety boundaries,
+[Stage 2 roadmap](docs/STAGE-2.md) for work order, and
+[Git workflow](docs/GIT-WORKFLOW.md) for local history and release handling.
+
+Stage 1 is complete and frozen at tag `friend-0.2` (version `0.2.0-friend-test`).
+The [release record](docs/releases/friend-0.2.txt) preserves the original package hashes.
+The frozen ZIP remains under `artifacts/Friend-0.2-Release/`; binaries are outside Git.
+Do not overwrite that package or move the tag.
+
+The portable layout remains `StormHeroesLauncher.exe` plus `app/StormHeroesLauncher.WindowHelper.exe`,
+both self-contained x64. Settings, logs and CLI cache use `%LOCALAPPDATA%\StormHeroesLauncher`.
+
+Offline validation with .NET 10 SDK and previously restored dependencies:
+
+```powershell
+dotnet build StormHeroesLauncher.slnx --configuration Release -p:Platform=x64 --no-restore
+dotnet run --project tests/StormHeroesLauncher.OfflineTests/StormHeroesLauncher.OfflineTests.csproj --configuration Release --no-restore
+```
+
+## Historical development notes
+
+The Alpha/MVP notes below describe earlier stages, not current configuration or launch behavior.
+Use PROJECT-STATE.md for the accepted launch architecture.
 
 # Alpha 0.1
 

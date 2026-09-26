@@ -8,7 +8,7 @@ public static class AboutSafetyContent
     public const string Email="441649289@qq.com";
     private static Assembly AppAssembly=>typeof(AboutSafetyContent).Assembly;
     public static string Version=>AppAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? AppAssembly.GetName().Version?.ToString() ?? "Unknown";
-    public static string BuildId=>(AppAssembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(a=>a.Key=="FriendBuildId")?.Value ?? "friend")+"-"+AppAssembly.ManifestModule.ModuleVersionId.ToString("N")[..12];
+    public static string BuildId=>(AppAssembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(a=>a.Key=="BuildId")?.Value ?? "Unknown")+"-"+AppAssembly.ManifestModule.ModuleVersionId.ToString("N")[..12];
     public static string SupportInfo=>$"StormHeroesLauncher\nVersion: {Version}\nBuild ID: {BuildId}\nArchitecture: x64\nWindows: {Environment.OSVersion.Version}";
     public static string LogsDirectory=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"StormHeroesLauncher","Logs");
     public static string FeedbackUri=>"mailto:"+Email+"?subject="+Uri.EscapeDataString("StormHeroesLauncher Feedback - "+Version);

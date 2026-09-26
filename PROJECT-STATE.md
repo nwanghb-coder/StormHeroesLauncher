@@ -2,9 +2,17 @@
 
 ## 1. Current milestone
 
+Stage 2 / Feature Complete is active on `stage2-feature-complete`, starting at `0.3.0-dev.1`. This entry change updates identity and documentation only. Observer and progress UI implementation has not started. See docs/STAGE-2.md and docs/GIT-WORKFLOW.md. Future development numbering is 0.3.0-dev.2, 0.3.0-dev.3, etc., followed when appropriate by alpha, beta, rc and stable. New development does not use Friend naming.
+
+Stage 2 entry validation (2026-09-26): SDK 10.0.401; Release x64 solution build passed with zero warnings/errors; all 249 offline tests passed, including updated About/Safety identity checks. No real UU/Battle.net/game launch, UAC acceptance or new portable package was performed. Safety behavior and published Safety claims are unchanged. No push or publication was performed; remote state remains unverified after the initial GitHub connectivity failure.
+
+The following release description is historical:
+
 Friend Release is complete and frozen: end of major Stage 1. Trusted friend test only, not a public production release. Accepted baseline: Friend v17 portable. Frozen package: StormHeroesLauncher-Friend-0.2; application version 0.2.0-friend-test; Build ID friend-0.2-release-9e7651132d9a. Freeze changes only main assembly Build ID metadata; the accepted helper is unchanged byte-for-byte. Manual runtime acceptance was supplied by the user; release freeze used static checks only.
 
 Release record: artifacts/Friend-0.2-Release/RELEASE-INFO.txt. Treat the ZIP and recorded hashes as the frozen artifact; a future rebuild is not automatically the same artifact.
+
+Tracked release-record copy: docs/releases/friend-0.2.txt. Frozen source tag: friend-0.2 at 9dda358225aa0a6df1b4ee9f78664f741381ecd9. At Stage 2 entry, the ZIP and both executable hashes matched the record. Binaries remain outside Git and must be preserved separately.
 
 ## 2. Product goal
 
@@ -83,7 +91,7 @@ Portable/no installer; no preinstalled .NET; one root user-facing EXE; one doubl
 - Settings needs later redesign; neutral temporary icon is not final branding.
 - No public-release code-signing/authenticity system; release hashes are integrity references only.
 - No multi-accelerator support yet.
-- Minor developer-only issue: AboutSafetyTests.cs still expects the old friend-v17-portable Build ID prefix. It was intentionally not changed or run during the freeze. Update that metadata expectation before the next full offline test run; it does not affect the runtime package.
+- Stage 2 updates the stale AboutSafetyTests metadata expectation to 0.3.0-dev.1 and the new version-prefixed Build ID. The historical test remains unchanged on the frozen tag.
 
 ## 13. Future requirements already agreed
 
@@ -104,4 +112,4 @@ Single-UAC architecture; same-user named-pipe security; Hide-first tray behavior
 
 ## 15. Next-stage entry point
 
-Begin the next conversation with Stage 2 / Feature Complete and an explicitly chosen requirement, not a refactor of the frozen friend-release launch chain. Read this document and RELEASE-INFO.txt first. Keep the frozen ZIP unchanged; new work gets a new build identity and its own acceptance.
+Continue Stage 2 in order: Git/GitHub workflow, developer-only update observer, then launch-state model and minimal progress UI. Do not begin all three at once or refactor the accepted launch chain for cleanliness. Read this document and the release record first. Keep the frozen ZIP and tag unchanged; new work gets a new build identity and its own acceptance. Pushes and publication require explicit user instruction.
