@@ -1,4 +1,4 @@
-# HOSLauncher Developer Observer — current package 0.3.0-dev.6
+# HOSLauncher Developer Observer — current package 0.3.0-dev.7
 
 Initially implemented in 0.3.0-dev.2. Dev.4 separates the bounded tail into a developer-only
 process, freeing the launch mutex for warm relaunch. JSONL schema version remains 1.
@@ -34,8 +34,8 @@ The script uses the existing Portable publish profiles and verifies the two-EXE 
 including observer type presence/absence inside the actual bundled managed assembly.
 It refuses to overwrite populated artifact folders. Outputs:
 
-- `artifacts/Stage2-0.3.0-dev.6-Normal/`
-- `artifacts/Stage2-0.3.0-dev.6-Observer/`
+- `artifacts/Stage2-0.3.0-dev.7-Normal/`
+- `artifacts/Stage2-0.3.0-dev.7-Observer/`
 
 Equivalent MSBuild selection is `-p:DeveloperObserver=false` or `-p:DeveloperObserver=true` on
 `dotnet build`, `dotnet run` (tests), or `dotnet publish`. Publishing needs `-p:PublishProfile=Portable`

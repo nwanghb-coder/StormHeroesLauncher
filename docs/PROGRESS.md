@@ -1,6 +1,7 @@
-# Stage 2 progress and readiness — 0.3.0-dev.6
+# Stage 2 progress and readiness — 0.3.0-dev.7
 
 Both packages use the compact progress window. Stage 3 visual design has not started.
+Dev.7 changes only Battle.net cold suppression; see [DEV-7.md](DEV-7.md). Progress layout is unchanged.
 Dev.6 corrects UU reuse with missing optional metadata and uses the HOSLauncher identity; see [DEV-6.md](DEV-6.md). Esc is unchanged.
 Single-UAC, cold Battle.net handling and Switcher launch arguments remain unchanged.
 Preparation suppression was enabled only after the authorized direct-game test demonstrated safe
@@ -71,7 +72,7 @@ Correlation state restarts in each file. Normal builds exclude worker and diagno
 ## Build and validation
 
 Use tools/Publish-Stage2.ps1 and tools/Publish-Stage2.ps1 -DeveloperObserver. They create
-artifacts/Stage2-0.3.0-dev.6-Normal/ and artifacts/Stage2-0.3.0-dev.6-Observer/, refuse populated
+artifacts/Stage2-0.3.0-dev.7-Normal/ and artifacts/Stage2-0.3.0-dev.7-Observer/, refuse populated
 output folders and create no ZIP. The two-EXE self-contained x64 portable layout is unchanged.
 Dev.6 offline validation: 315 normal / 385 Observer checks. Tests cover stable readiness, ownership,
 nonfatal bounded hiding, forward-only progress, borderless WPF rendering/lifecycle and independent
@@ -113,4 +114,4 @@ Dev.4 was broadly accepted manually by the user. For the added dev.5 scenarios, 
 9. Check 100%, 125% and 150% DPI where available: one-line status, readable text, no clipped controls,
    no repeated focus stealing. Report version, scenario, stage and relevant logs for any failure.
 
-Dev.6 real acceptance has not been run automatically; use the warm acceptance steps in DEV-6.md.
+Dev.6 warm acceptance passed according to the user. Dev.7 cold visual acceptance remains manual; see DEV-7.md.

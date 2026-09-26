@@ -89,4 +89,5 @@ the historical ZIP SHA-256 remains A9269BF0ACAB188265290936663117A8712A732EA65E4
    existing settings still load from the old physical data directory. The Observer package should
    retain its independent bounded tail and read-only startup evidence behavior.
 
-User acceptance remains pending; offline results do not claim a real warm-start run.
+The user subsequently reported successful dev.6 warm-start acceptance when requesting dev.7.
+The offline results above do not themselves claim a real warm-start run.

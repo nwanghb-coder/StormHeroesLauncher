@@ -1,6 +1,6 @@
 # Stage 2 — Feature Complete
 
-Product: HOSLauncher. Development branch: `stage2-feature-complete`. Current version: `0.3.0-dev.6` (entry baseline was `0.3.0-dev.1`).
+Product: HOSLauncher. Development branch: `stage2-feature-complete`. Current version: `0.3.0-dev.7` (entry baseline was `0.3.0-dev.1`).
 Use sequential SemVer development versions, then alpha/beta/rc/stable when appropriate.
 Current executable name: `HOSLauncher.exe`; project/repository and local-data paths remain unchanged.
 
@@ -10,15 +10,16 @@ Current executable name: `HOSLauncher.exe`; project/repository and local-data pa
 2. Developer-only UU/Battle.net update observer: design before implementation. Use a separate build configuration or compile-time feature gate that excludes the capability from normal releases; never depend on remembering to remove it. Read-only JSONL may record version/file/path changes, process-tree and updater/helper lifetimes, visible top-level window classes, and observation timestamps/durations. Observe argument shapes only where safely available and redact values; never collect authentication material. Distinguish observed facts from inferred update stages. No process-memory access, hooks, packet capture or external-app modification. Check About/Safety wording before enabling this behavior.
 3. Define a launch-state model independent of visual widgets, then a compact, replaceable progress UI. Candidate states: Initializing, StartingUU, PreparingUU, Boosting, StartingBattleNet, WaitingForBattleNet, StartingHeroes, PreparingHeroes, GameReady, Failed. Define readiness evidence and failure transitions before connecting UI. Keep the Heroes preparing-game-data window visible until equivalent feedback is reliable. Final visual design belongs to Stage 3.
 
-Current workstream: **dev.6 UU warm reuse fix and visible product rename**.
-See [DEV-6.md](DEV-6.md) for decisions, rename boundaries, checks and manual tests.
+Current workstream: **dev.7 Battle.net cold-start exposure reduction**.
+See [DEV-7.md](DEV-7.md) for timing, safety, checks and manual cold-start comparison.
+The dev.6 warm reuse and HOSLauncher rename passed user acceptance and are unchanged.
 Dev.4 is the broadly accepted manual baseline. See [PROGRESS.md](PROGRESS.md)
 for the borderless layout, stable main-window readiness, state mapping and manual acceptance.
 Authorized direct Switcher tests established preparation hiding before normal workflow integration;
 see [HEROES-PREP.md](HEROES-PREP.md). No final Stage 3 styling was started.
 The [Observer tail](OBSERVER.md) runs separately without the workflow mutex; normal builds exclude
-all developer worker/diagnostic code. Dev.6 offline checks: 315 normal / 385 Observer. New real
-Fast Path, Esc and startup-window evidence acceptance remains manual. No splash hiding is implemented.
+all developer worker/diagnostic code. Dev.7 offline checks: 333 normal / 403 Observer.
+Real dev.7 cold-start visual acceptance remains manual. No UU splash hiding is implemented.
 
 Git/GitHub baseline synchronization and the frozen Friend-0.2 pre-release are complete.
 Observer and progress implementations are local commits only; do not push without explicit instruction.

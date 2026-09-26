@@ -2,7 +2,7 @@
 
 ## 1. Current milestone
 
-Stage 2 / Feature Complete is active on `stage2-feature-complete`, currently `0.3.0-dev.6`, with user-facing identity HOSLauncher. Dev.6 accepts missing optional zone/server metadata for game-matched active UU boosting and rejects explicit conflicts. See docs/DEV-6.md for exact rules, package identity and manual warm acceptance. Project/repository and LOCALAPPDATA/StormHeroesLauncher paths remain unchanged. Esc, observer sampling, cold-start architecture and Heroes readiness/hiding remain the accepted baseline. No Stage 3 work, migration, push, merge or tag.
+Stage 2 / Feature Complete is active on `stage2-feature-complete`, currently `0.3.0-dev.7`, with user-facing identity HOSLauncher. Dev.7 starts Battle.net suppression before Process.Start, uses bounded 5/10/25 ms asynchronous polling and targeted HWND/process revalidation, and keeps hidden-Chromium readiness independent. See docs/DEV-7.md for the timing audit, metrics, limitations and exact manual acceptance. Dev.6 warm reuse, skipped progress and naming passed user manual acceptance and remain unchanged. UU, CLI, helper, security, Esc, Observer, Heroes, UI and data paths are preserved. No Stage 3 work, migration, push, merge or tag.
 
 Historical Dev.5 validation: 303 Normal / 373 Observer offline checks passed. No real UU/Battle.net/Heroes/helper/UAC or native splash test was run. Warm UU reuse requires a fresh boosting response explicitly matching gameId/zoneId/serverId and UU still running; missing zone/server fields use normal fallback and may still issue CLI start. Ready Battle.net reuses the accepted three-sample proxy without cold/tray replay. Esc leaves issued processes and acceleration intact, reports 已取消 and releases the mutex before observer teardown. The developer startup sampler uses 100 ms discovery (35-second bound), then 20 ms polling for five seconds in a separate compatible JSONL session. Normal builds omit it. Main version/Build ID advances; WindowHelper, pipe security, cold suppression and Heroes readiness/hiding are preserved. Outputs: artifacts/Stage2-0.3.0-dev.5-Normal and artifacts/Stage2-0.3.0-dev.5-Observer. Local commit only, no push/merge/tag/ZIP. See docs/DEV-5.md for the required user-run warm/Esc/startup-observation checks.
 
@@ -28,7 +28,9 @@ Release record: artifacts/Friend-0.2-Release/RELEASE-INFO.txt. Treat the ZIP and
 
 Tracked release-record copy: docs/releases/friend-0.2.txt. Frozen source tag: friend-0.2 at 9dda358225aa0a6df1b4ee9f78664f741381ecd9. At Stage 2 entry, the ZIP and both executable hashes matched the record. Binaries remain outside Git and must be preserved separately.
 
-Dev.6 offline checks: 315 Normal / 385 Observer. Output directories: artifacts/Stage2-0.3.0-dev.6-Normal and artifacts/Stage2-0.3.0-dev.6-Observer. Both use HOSLauncher.exe plus app/HOSLauncher.WindowHelper.exe. No real external applications were run for dev.6; user warm acceptance remains pending. Historical Friend-0.2 artifacts retain their old identity.
+Dev.6 offline checks: 315 Normal / 385 Observer. Output directories: artifacts/Stage2-0.3.0-dev.6-Normal and artifacts/Stage2-0.3.0-dev.6-Observer. Both use HOSLauncher.exe plus app/HOSLauncher.WindowHelper.exe. No real external applications were run by Codex for dev.6; the user subsequently reported successful manual warm acceptance. Historical Friend-0.2 artifacts retain their old identity.
+
+Dev.7 offline checks: 333 Normal / 403 Observer. Both artifacts/Stage2-0.3.0-dev.7-Normal and artifacts/Stage2-0.3.0-dev.7-Observer passed two-EXE self-contained win-x64 verification (Observer types 0 / 34). Both preserve the accepted dev.6 WindowHelper byte-for-byte. No real application was launched for dev.7; cold-start visual improvement is pending user acceptance.
 
 ## 2. Product goal
 
@@ -109,7 +111,7 @@ Portable/no installer; no preinstalled .NET; one root user-facing EXE; one doubl
 - Settings needs later redesign; neutral temporary icon is not final branding.
 - No public-release code-signing/authenticity system; release hashes are integrity references only.
 - No multi-accelerator support yet.
-- AboutSafetyTests validate 0.3.0-dev.6, version-prefixed Build ID and build-specific Safety text. The existing Safety claims remain accurate for read-only startup metadata. WindowHelper operational code is unchanged; dev.6 rebuilds its HOSLauncher name/metadata. The frozen tag remains unchanged.
+- AboutSafetyTests validate 0.3.0-dev.7, version-prefixed Build ID and build-specific Safety text. The existing Safety claims remain accurate for read-only startup metadata. WindowHelper operational code is unchanged; dev.6 rebuilds its HOSLauncher name/metadata. The frozen tag remains unchanged.
 - Developer Observer v1 is polling-based; short-lived processes/windows and outside-root updater families without a live parent link may be missed. Inferred update sessions are not updater-confirmed results. Real update-scenario validation is pending.
 - Developer observation continues in a separate process for at most two minutes after successful stable-window readiness, reduced by the main session's remaining 15-minute budget, plus up to two seconds teardown. The worker route never acquires the launch mutex, and sessions/files are independent with parentSessionId links. Correlation baselines restart at handoff. Main launcher exits after its brief progress completion and bounded flush/dispatch; warm relaunch is no longer blocked by the tail.
 

@@ -1,6 +1,9 @@
 # HOSLauncher — Stage 2: Feature Complete
 
-Current development version: **0.3.0-dev.6**, on `stage2-feature-complete`.
+Current development version: **0.3.0-dev.7**, on `stage2-feature-complete`.
+Dev.7 reduces Battle.net cold-start exposure with prelaunch observation and targeted hide/close actions.
+See [timing audit, checks and cold-start acceptance](docs/DEV-7.md). The user accepted dev.6 warm reuse
+and HOSLauncher naming; these remain unchanged.
 Dev.6 reuses game-matched active UU acceleration when optional zone/server fields are missing,
 while rejecting explicit conflicts. The visible product is now HOSLauncher. See
 [decision rules, rename boundaries and manual acceptance](docs/DEV-6.md).

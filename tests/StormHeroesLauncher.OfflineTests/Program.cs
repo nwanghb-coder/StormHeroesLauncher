@@ -261,7 +261,7 @@ await UuElevationTests.Run(logger, Assert);
 await HelperResultTests.Run(logger, Assert);
 await BattleNetWindowTests.Run(logger, Assert);
 await HeroesPrepTests.Run(logger, Assert);
-EarlySuppressionTests.Run(logger, Assert);
+await EarlySuppressionTests.Run(logger, Assert);
 await HideFirstTests.Run(logger, Assert);
 ShortcutImportTests.Run(logger, Assert);
 ImportPresentationTests.Run(Assert);
