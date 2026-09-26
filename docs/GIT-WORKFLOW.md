@@ -13,6 +13,12 @@ rebuilding the tag does not reproduce the frozen artifact by definition.
 
 ## Stage 2 work
 
+`main` is the stable/frozen milestone line. `stage2-feature-complete` is the current
+Stage 2 integration branch. Future substantial features may use `feature/<short-name>`:
+feature branch -> offline tests/build -> commit -> merge/PR into `stage2-feature-complete`.
+Do not merge Stage 2 into `main` until the milestone is intentionally frozen.
+Tags are immutable milestone references.
+
 Work on `stage2-feature-complete`. Inspect status/diffs before edits and commits.
 Stage specific related files; use focused commits with a concrete problem/result description.
 Run the relevant offline checks and record limitations. Never include local settings, logs,
@@ -26,10 +32,12 @@ profiles remain authoritative for self-contained x64 packaging.
 
 Remote: https://github.com/nwanghb-coder/StormHeroesLauncher.git
 
-At initial inspection, local main and origin/main both pointed at the imported commit.
-GitHub was unreachable, so this is not confirmation of current server state or remote tags.
+At initial inspection, GitHub was unreachable. On 2026-09-26, a successful normal fetch
+and remote-ref inspection confirmed remote main at the imported commit, with no remote
+Stage 2 branch or release tag yet. Synchronization publishes only the Stage 2 branch and
+the existing frozen tag; it does not merge into main or create a GitHub Release.
 Before an explicitly requested push, inspect remote branches/tags, check for divergence,
-and resolve any existing tag mismatch without overwriting the release tag.
+and stop and report any unexpected divergence or tag mismatch without changing history.
 Push only the requested branch/tag; never force-push the frozen baseline.
 
 GitHub issue creation, project setup, branch/tag protection and release uploads remain future
