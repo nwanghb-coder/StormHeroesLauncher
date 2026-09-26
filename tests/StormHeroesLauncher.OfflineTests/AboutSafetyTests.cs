@@ -7,7 +7,7 @@ public static class AboutSafetyTests
     public static void Run(Action<bool,string> check)
     {
         check(AboutSafetyContent.Publisher=="阿黄" && AboutSafetyContent.Email=="441649289@qq.com","About publisher and contact exact");
-        check((AboutSafetyContent.Version == "0.3.0-dev.7" || AboutSafetyContent.Version.StartsWith("0.3.0-dev.7+", StringComparison.Ordinal)) && System.Text.RegularExpressions.Regex.IsMatch(AboutSafetyContent.BuildId, @"\A0\.3\.0-dev\.7-[0-9a-f]{12}\z"),"version from assembly; populated build metadata and deterministic module ID");
+        check((AboutSafetyContent.Version == "0.3.0-alpha.1" || AboutSafetyContent.Version.StartsWith("0.3.0-alpha.1+", StringComparison.Ordinal)) && System.Text.RegularExpressions.Regex.IsMatch(AboutSafetyContent.BuildId, @"\A0\.3\.0-alpha\.1-[0-9a-f]{12}\z"),"version from assembly; populated build metadata and deterministic module ID");
         string support=AboutSafetyContent.SupportInfo;
         check(support.StartsWith("HOSLauncher\n") && typeof(AboutSafetyContent).Assembly.GetName().Name == "HOSLauncher" &&
             typeof(AboutSafetyContent).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyProductAttribute), false)

@@ -3,17 +3,22 @@ using StormHeroesLauncher.Services;
 
 namespace StormHeroesLauncher.Observer;
 
-public enum BattleNetProbeStrategy { Baseline, Hidden, StartupInfo }
+public enum BattleNetProbeStrategy { Baseline, Hidden, StartupInfo, AutoStarted }
 public sealed record ProbeWindow(uint Pid, long Created, long Hwnd, string ClassName,
     bool Visible, bool Minimized, bool Enabled, bool Hung, bool Ownerless);
 
 public static class BattleNetProbePolicy
 {
-    public static ProcessStartInfo StartInfo(string path, BattleNetProbeStrategy strategy) => new(path)
+    public static ProcessStartInfo StartInfo(string path, BattleNetProbeStrategy strategy)
     {
-        UseShellExecute = false, WorkingDirectory = System.IO.Path.GetDirectoryName(path)!,
-        WindowStyle = strategy == BattleNetProbeStrategy.Hidden ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal
-    };
+        var info = new ProcessStartInfo(path)
+        {
+            UseShellExecute = false, WorkingDirectory = System.IO.Path.GetDirectoryName(path)!,
+            WindowStyle = strategy == BattleNetProbeStrategy.Hidden ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal
+        };
+        if (strategy == BattleNetProbeStrategy.AutoStarted) info.ArgumentList.Add("--autostarted");
+        return info;
+    }
     public static bool RelatedName(string name) => name.Equals("Battle.net.exe", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("Battle.net Launcher.exe", StringComparison.OrdinalIgnoreCase) || name.Equals("Agent.exe", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("BlizzardError.exe", StringComparison.OrdinalIgnoreCase);

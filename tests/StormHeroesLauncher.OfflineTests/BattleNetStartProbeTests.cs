@@ -11,6 +11,11 @@ public static class BattleNetStartProbeTests
         const string path = @"C:\Fixture\Battle.net.exe", root = @"C:\Fixture", agent = @"C:\ProgramData\Battle.net\Agent";
         var baseline=BattleNetProbePolicy.StartInfo(path,BattleNetProbeStrategy.Baseline);
         var hidden=BattleNetProbePolicy.StartInfo(path,BattleNetProbeStrategy.Hidden);
+        var autoStarted=BattleNetProbePolicy.StartInfo(path,BattleNetProbeStrategy.AutoStarted);
+        check(!autoStarted.UseShellExecute && autoStarted.WindowStyle==ProcessWindowStyle.Normal &&
+            autoStarted.ArgumentList.SequenceEqual(new[]{"--autostarted"}) && autoStarted.Arguments=="" &&
+            !autoStarted.CreateNoWindow && autoStarted.Verb=="",
+            "native autostart experiment uses only its fixed argument without Hidden or elevation");
         check(!baseline.UseShellExecute && baseline.WindowStyle==ProcessWindowStyle.Normal && baseline.ArgumentList.Count==0 && baseline.Arguments=="","baseline is normal non-shell launch with no arguments");
         check(!hidden.UseShellExecute && hidden.WindowStyle==ProcessWindowStyle.Hidden && !hidden.CreateNoWindow && hidden.Verb=="","Hidden changes only show-state hint, with no shell/elevation");
         check(await DeveloperBattleNetStartProbe.RunAsync(["--test-battlenet-start","99",path,@"C:\test.jsonl"])==2,"unknown strategy rejected without execution");
