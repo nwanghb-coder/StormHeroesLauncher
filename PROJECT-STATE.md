@@ -2,7 +2,11 @@
 
 ## 1. Current milestone
 
-Stage 2 / Feature Complete is active on `stage2-feature-complete`, starting at `0.3.0-dev.1`. This entry change updates identity and documentation only. Observer and progress UI implementation has not started. See docs/STAGE-2.md and docs/GIT-WORKFLOW.md. Future development numbering is 0.3.0-dev.2, 0.3.0-dev.3, etc., followed when appropriate by alpha, beta, rc and stable. New development does not use Friend naming.
+Stage 2 / Feature Complete is active on `stage2-feature-complete`, currently `0.3.0-dev.2`. Developer Observer v1 is implemented behind `DeveloperObserver=true`; normal builds physically exclude observer code. See docs/OBSERVER.md, docs/STAGE-2.md and docs/GIT-WORKFLOW.md. Progress UI has not started. Subsequent development builds use 0.3.0-dev.3, etc., followed when appropriate by alpha, beta, rc and stable. New development does not use Friend naming.
+
+Observer v1 validation (2026-09-26): 251 normal and 309 observer offline checks passed using fake observation sources. Both self-contained x64 portable packages passed verification; packaged normal assembly has zero observer types, developer assembly has 27. Outputs: artifacts/Stage2-0.3.0-dev.2-Normal and artifacts/Stage2-0.3.0-dev.2-Observer. No real UU/Battle.net/game, WindowHelper or UAC was run. Source changes are local only; no push, milestone tag or new release for this work.
+
+Git/GitHub synchronization was completed after the entry inspection: main and friend-0.2 remain at 9dda358225aa0a6df1b4ee9f78664f741381ecd9; origin/stage2-feature-complete was synchronized at 778fdd7. The private repository's frozen Friend-0.2 pre-release was published using the original ZIP and RELEASE-INFO.txt. These historical assets are unchanged.
 
 Stage 2 entry validation (2026-09-26): SDK 10.0.401; Release x64 solution build passed with zero warnings/errors; all 249 offline tests passed, including updated About/Safety identity checks. No real UU/Battle.net/game launch, UAC acceptance or new portable package was performed. Safety behavior and published Safety claims are unchanged. No push or publication was performed; remote state remains unverified after the initial GitHub connectivity failure.
 
@@ -71,6 +75,8 @@ Development assistance: 本启动器在 ChatGPT（含 Codex）协助下开发。
 
 About/Safety covers current features, safety/privacy boundaries, technical implementation, feedback, local logs, and the independent third-party tool disclaimer. It displays assembly version/Build ID. Feedback opens a draft only on explicit user action; no automatic upload or attachment. Logs may include local paths/configuration/extra configured fields: inspect before sharing, and never put credentials into configuration.
 
+Developer Observer builds additionally disclose their read-only metadata collection, separate Observer log directory and bounded background lifetime in Safety. Normal builds retain the original Safety text. No Settings checkbox or UI redesign was introduced.
+
 ## 9. Security boundaries
 
 No DLL injection, hooks, UI Automation/MSAA launch actions, process-memory read/write, game-file modification, packet capture/manipulation, simulated game input, UAC bypass, persistent elevated service or hidden scheduled task. No credential/token extraction. Main remains asInvoker; elevation is limited to the narrow helper when needed. No external registry/network/firewall configuration changes. These are implementation boundaries, not a guarantee of anti-cheat compatibility or account safety.
@@ -91,7 +97,9 @@ Portable/no installer; no preinstalled .NET; one root user-facing EXE; one doubl
 - Settings needs later redesign; neutral temporary icon is not final branding.
 - No public-release code-signing/authenticity system; release hashes are integrity references only.
 - No multi-accelerator support yet.
-- Stage 2 updates the stale AboutSafetyTests metadata expectation to 0.3.0-dev.1 and the new version-prefixed Build ID. The historical test remains unchanged on the frozen tag.
+- AboutSafetyTests now validate 0.3.0-dev.2, version-prefixed Build ID and build-specific Safety text. The historical test remains unchanged on the frozen tag.
+- Developer Observer v1 is polling-based; short-lived processes/windows and outside-root updater families without a live parent link may be missed. Inferred update sessions are not updater-confirmed results. Real update-scenario validation is pending.
+- Developer observation lasts two minutes after successful launch workflow completion (confirmed game presence), at most 15 minutes total, plus up to two seconds teardown. The existing launch mutex remains held during the tail, so repeat launcher/settings invocations exit as duplicates until it finishes. Normal builds retain immediate workflow-end exit.
 
 ## 13. Future requirements already agreed
 

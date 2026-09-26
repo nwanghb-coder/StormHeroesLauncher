@@ -7,4 +7,5 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../../src/StormHeroesLauncher/StormHeroesLauncher.csproj" /></ItemGroup>
+  <ItemGroup Condition="'$(DeveloperObserver)' != 'true'"><Compile Remove="ObserverTests.cs" /></ItemGroup>
 </Project>

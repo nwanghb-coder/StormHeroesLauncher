@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Package)
+param([Parameter(Mandatory=$true)][string]$Package, [ValidateSet('Normal','Observer')][string]$BuildFlavor)
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path -LiteralPath $Package).Path
 $files=@(Get-ChildItem -LiteralPath $root -Recurse -File)
@@ -17,15 +17,32 @@ foreach($file in $files){
   $major=$reader.ReadUInt32();$minor=$reader.ReadUInt32();$count=$reader.ReadInt32();$id=$reader.ReadString()
   if($major -ne 6){throw 'Unsupported bundle format; inspect SDK format before adapting verifier'}
   $depsOffset=$reader.ReadInt64();$depsSize=$reader.ReadInt64();$configOffset=$reader.ReadInt64();$configSize=$reader.ReadInt64();$flags=$reader.ReadUInt64()
-  $names=@()
+  $names=@();$mainOffset=0;$mainSize=0
   for($i=0;$i -lt $count;$i++){
    $offset=$reader.ReadInt64();$size=$reader.ReadInt64();$compressed=$reader.ReadInt64();$type=$reader.ReadByte();$name=$reader.ReadString()
    if($compressed -ne 0){throw 'Unexpected bundle compression'}
    $names+=$name
+   if($name -eq 'StormHeroesLauncher.dll'){$mainOffset=$offset;$mainSize=$size}
   }
   foreach($required in @('System.Private.CoreLib.dll')){if($required -notin $names){throw ('Missing bundled runtime: '+$required)}}
   if($file.Name -eq 'StormHeroesLauncher.exe' -and 'PresentationFramework.dll' -notin $names){throw 'WPF runtime not bundled'}
   if($names | Where-Object {$_ -match '\.pdb$|\.cs$|OfflineTests|(^|/)Diagnostics/|(^|/)uu-cli\.exe$|(^|/)settings\.json$'}){throw 'Development or user/CLI files in bundle'}
+  if($BuildFlavor -and $file.Name -eq 'StormHeroesLauncher.exe'){
+   if(!$mainSize){throw 'Main managed assembly missing'}
+   $stream.Position=$mainOffset
+   $managed=[IO.MemoryStream]::new($reader.ReadBytes([int]$mainSize))
+   $peMetadata=[System.Reflection.PortableExecutable.PEReader]::new($managed)
+   try {
+    $metadata=[System.Reflection.Metadata.PEReaderExtensions]::GetMetadataReader($peMetadata)
+    $observerTypes=0
+    foreach($handle in $metadata.TypeDefinitions){
+     $type=$metadata.GetTypeDefinition($handle)
+     if($metadata.GetString($type.Namespace) -eq 'StormHeroesLauncher.Observer'){$observerTypes++}
+    }
+    if(($observerTypes -gt 0) -ne ($BuildFlavor -eq 'Observer')){throw 'Packaged observer isolation mismatch'}
+    Write-Output ('PASS: '+$BuildFlavor+' packaged managed assembly; ObserverTypes='+$observerTypes)
+   } finally {$peMetadata.Dispose();$managed.Dispose()}
+  }
   $stream.Position=$configOffset;$config=[Text.Encoding]::UTF8.GetString($reader.ReadBytes([int]$configSize))|ConvertFrom-Json
   if(!$config.runtimeOptions.includedFrameworks -or $config.runtimeOptions.framework -or $config.runtimeOptions.frameworks){throw 'Runtime configuration is not self-contained'}
   # Modern .NET singlefilehost statically links CoreCLR/JIT/hostpolicy rather than listing these as bundle files.

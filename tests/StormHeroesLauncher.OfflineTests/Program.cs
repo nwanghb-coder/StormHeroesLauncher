@@ -261,6 +261,10 @@ ImportPresentationTests.Run(Assert);
 AboutSafetyTests.Run(Assert);
 IconTests.Run(logger,Assert);
 PortableTests.Run(Assert);
+await ObserverBuildTests.Run(Assert);
+#if DEVELOPER_OBSERVER
+await ObserverTests.Run(Assert);
+#endif
 Console.WriteLine($"OFFLINE TESTS PASSED: {passed}. No UU CLI was invoked.");
 
 sealed class FakeRunner : ICliProcessRunner

@@ -19,7 +19,9 @@ public static class AboutSafetyContent
         ("技术实现","• C# / .NET / WPF（Windows 桌面 UI 框架）\n• SharpCompress\n• 随程序附带 .NET 运行库，无需另行安装；运行时可能解压原生组件到 Windows 临时缓存\n• 网易 UU 加速使用用户本机 UU 安装中提供的官方 CLI\n• 游戏通过 Battle.net / HeroesSwitcher 本地启动链启动\n• 窗口处理使用 Windows 标准 Win32 API（Windows 原生接口）\n• 主程序以普通权限运行\n• 仅 UU 所需的窄功能辅助程序在必要时通过标准 UAC 提权"),
         ("反馈与诊断","遇到问题时，可复制版本信息并描述操作步骤、预期结果和实际结果。日志仅保存在本机；本页面不会自动附加文件、上传日志或发送邮件。反馈按钮只请求默认邮件客户端打开邮件草稿。"),
         ("独立第三方工具声明","StormHeroesLauncher 为独立制作的第三方工具，与 Blizzard Entertainment（暴雪娱乐）、NetEase（网易）及 OpenAI 不存在官方隶属、授权或背书关系。")
-    });
+    }.Select(section => section.Item1 == "安全与隐私" && BuildFeatures.DeveloperObserver
+        ? (section.Item1, section.Item2.Replace("在启动流程结束后长期驻留后台", "在启动流程结束后无限期驻留后台") + BuildFeatures.ObserverNotice)
+        : section).ToArray());
 }
 public interface IAboutActions
 {

@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <DeveloperObserver Condition="'$(DeveloperObserver)' == ''">false</DeveloperObserver>
+    <!-- Set before SDK imports. Never reuse normal compilation artifacts for observer builds. -->
+    <BaseIntermediateOutputPath Condition="'$(DeveloperObserver)' == 'true'">obj\observer\</BaseIntermediateOutputPath>
+    <BaseOutputPath Condition="'$(DeveloperObserver)' == 'true'">bin\observer\</BaseOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/obj/**;**/bin/**</DefaultItemExcludes>
+    <DefineConstants Condition="'$(DeveloperObserver)' == 'true'">$(DefineConstants);DEVELOPER_OBSERVER</DefineConstants>
+  </PropertyGroup>
+</Project>

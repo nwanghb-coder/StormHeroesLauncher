@@ -11,6 +11,9 @@ public partial class App : Application
         bool shiftHeld = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
         var logger = new AppLogger();
         Mutex? mutex = null; bool owned = false; int exitCode = 0;
+#if DEVELOPER_OBSERVER
+        Observer.ObserverHost? observer = null;
+#endif
         try
         {
             mutex = new Mutex(false, @"Local\StormHeroesLauncher.Alpha.LaunchWorkflow");
@@ -57,6 +60,10 @@ public partial class App : Application
             var boost = new HeroesBoostWorkflow(uu.DetectOrStartAsync, cli, options, logger);
             var battleNet = new BattleNetService(logger, settings.BattleNetPath, settings.BattleNetWindowMode == BattleNetWindowMode.Minimized);
             var heroes = new HeroesProcessService(logger, settings.HeroesSwitcherPath);
+#if DEVELOPER_OBSERVER
+            logger.Write("ObserverBuild=True; read-only developer observation enabled.");
+            observer = Observer.ObserverHost.Start(settings.UuLauncherPath, settings.BattleNetPath, logger.Write);
+#endif
             var workflow = new HeroesLaunchWorkflow(heroes.IsRunningAsync,
                 token => boost.StartAsync(logger.Write, token),
                 async token => { await battleNet.EnsureReadyAsync(token); await windows.BattleNetAsync(settings.BattleNetWindowMode, token); },
@@ -65,13 +72,25 @@ public partial class App : Application
 
                     await windows.BattleNetAsync(settings.BattleNetWindowMode, token); }, settings.RequireValid, logger);
             await workflow.RunAsync(CancellationToken.None);
+#if DEVELOPER_OBSERVER
+            if (observer != null) await observer.AfterGameAsync();
+#endif
             logger.Write("流程完成，启动器退出；保留 UU、战网及游戏运行。");
         }
         catch (Exception ex)
         {
+#if DEVELOPER_OBSERVER
+            if (observer != null) await observer.StopAsync();
+#endif
             exitCode = 1; logger.Write($"启动失败：{ex.GetType().Name}：{ex.Message}");
             MessageBox.Show($"启动未完成：{ex.Message}\n\n请先在 UU 和战网手动登录并启用记住/自动登录，确认 UU 会员有效、游戏更新完成。\n不会自动关闭外部程序或停止加速。\n日志：{logger.LogPath}", $"StormHeroesLauncher {AboutSafetyContent.Version}", MessageBoxButton.OK, MessageBoxImage.Error);
         }
-        finally { if (owned) mutex!.ReleaseMutex(); mutex?.Dispose(); Shutdown(exitCode); }
+        finally
+        {
+#if DEVELOPER_OBSERVER
+            if (observer != null) await observer.StopAsync();
+#endif
+            if (owned) mutex!.ReleaseMutex(); mutex?.Dispose(); Shutdown(exitCode);
+        }
     }
 }

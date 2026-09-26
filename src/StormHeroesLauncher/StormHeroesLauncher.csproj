@@ -8,12 +8,19 @@
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.3.0-dev.1</Version><InformationalVersion>0.3.0-dev.1</InformationalVersion><ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.3.0-dev.2</Version><InformationalVersion>0.3.0-dev.2</InformationalVersion><ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
-    <AssemblyMetadata Include="BuildId" Value="0.3.0-dev.1" />
+    <AssemblyMetadata Include="BuildId" Value="0.3.0-dev.2" />
+    <AssemblyMetadata Include="DeveloperObserver" Value="$(DeveloperObserver)" />
     <Resource Include="Assets\Launcher.ico" />
     <PackageReference Include="SharpCompress" Version="[0.50.4]" />
     <None Update="uu-cli.settings.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
   </ItemGroup>
+  <ItemGroup Condition="'$(DeveloperObserver)' != 'true'">
+    <Compile Remove="Observer\**\*.cs" />
+  </ItemGroup>
+  <Target Name="ValidateObserverFlag" BeforeTargets="CoreCompile">
+    <Error Condition="'$(DeveloperObserver)' != 'true' and '$(DeveloperObserver)' != 'false'" Text="DeveloperObserver must be true or false." />
+  </Target>
 </Project>
