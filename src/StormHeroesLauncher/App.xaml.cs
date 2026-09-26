@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Input;
 using StormHeroesLauncher.Configuration;
 using StormHeroesLauncher.Services;
+using StormHeroesLauncher.Models;
 namespace StormHeroesLauncher;
 public partial class App : Application
 {
@@ -11,6 +12,8 @@ public partial class App : Application
         bool shiftHeld = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
         var logger = new AppLogger();
         Mutex? mutex = null; bool owned = false; int exitCode = 0;
+        LaunchProgress? progress = null;
+        LaunchProgressWindow? progressWindow = null;
 #if DEVELOPER_OBSERVER
         Observer.ObserverHost? observer = null;
 #endif
@@ -48,18 +51,30 @@ public partial class App : Application
             if (!prepared.Success) loadError = string.Join("\n", new[] { loadError, prepared.Message }.Where(s => !string.IsNullOrEmpty(s)));
             if (StartupRouting.OpenSettings(e.Args, shiftHeld, settings.Validate().Length == 0, loadError != null))
             { new SettingsWindow(settings, store, discovery, preparation, logger, loadError).ShowDialog(); return; }
+            // Routing must be resolved first: settings recovery/imports never flash a launch window.
+            if (StartupRouting.ShowLaunchProgress(e.Args, shiftHeld, settings.Validate().Length == 0, loadError != null))
+            {
+                progress = new LaunchProgress(logger.Write);
+                try
+                {
+                    progressWindow = new LaunchProgressWindow(progress);
+                    progressWindow.Show();
+                    await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+                }
+                catch (Exception uiError) { logger.Write($"Progress UI unavailable: {uiError.GetType().Name}; launch continues."); }
+            }
             settings.RequireValid(); store.Save(settings);
             logger.WriteOperation("已通过启动前检查", settings);
             var options = new UuCliOptions { CliPath = settings.UuCliPath }; options.Validate();
-            var uu = new UuService(logger, settings.UuLauncherPath);
+            var uu = new UuService(logger, settings.UuLauncherPath, progress);
 
 
             var windows = new WindowPolicy(logger, (app, token) => Task.Run(() => BattleNetTray.CloseAsync(logger, token), token));
 
             var cli = new UuCliService(options, logger, new ValidatedCliRunner(cliValidation, new CliProcessRunner()));
-            var boost = new HeroesBoostWorkflow(uu.DetectOrStartAsync, cli, options, logger);
-            var battleNet = new BattleNetService(logger, settings.BattleNetPath, settings.BattleNetWindowMode == BattleNetWindowMode.Minimized);
-            var heroes = new HeroesProcessService(logger, settings.HeroesSwitcherPath);
+            var boost = new HeroesBoostWorkflow(uu.DetectOrStartAsync, cli, options, logger, progress);
+            var battleNet = new BattleNetService(logger, settings.BattleNetPath, settings.BattleNetWindowMode == BattleNetWindowMode.Minimized, progress);
+            var heroes = new HeroesProcessService(logger, settings.HeroesSwitcherPath, progress);
 #if DEVELOPER_OBSERVER
             logger.Write("ObserverBuild=True; read-only developer observation enabled.");
             observer = Observer.ObserverHost.Start(settings.UuLauncherPath, settings.BattleNetPath, logger.Write);
@@ -70,27 +85,43 @@ public partial class App : Application
                 async token => { await windows.BattleNetAsync(settings.BattleNetWindowMode, token); await heroes.LaunchAndWaitAsync(token);
                     logger.Write("游戏进程已确认，复查启动期间可能恢复的外部窗口。");
 
-                    await windows.BattleNetAsync(settings.BattleNetWindowMode, token); }, settings.RequireValid, logger);
+                    await windows.BattleNetAsync(settings.BattleNetWindowMode, token); }, settings.RequireValid, logger, progress);
             await workflow.RunAsync(CancellationToken.None);
 #if DEVELOPER_OBSERVER
-            if (observer != null) await observer.AfterGameAsync();
+            // Start the unchanged observer tail now; the progress window does not wait for it.
+            Task observerTail = observer?.AfterGameAsync() ?? Task.CompletedTask;
+#endif
+            await FinishProgressAsync(progressWindow, logger);
+#if DEVELOPER_OBSERVER
+            await observerTail;
 #endif
             logger.Write("流程完成，启动器退出；保留 UU、战网及游戏运行。");
         }
         catch (Exception ex)
         {
+            progress?.Report(LaunchState.Failed);
 #if DEVELOPER_OBSERVER
-            if (observer != null) await observer.StopAsync();
+            Task observerStop = observer?.StopAsync() ?? Task.CompletedTask;
+#endif
+            await FinishProgressAsync(progressWindow, logger);
+#if DEVELOPER_OBSERVER
+            await observerStop;
 #endif
             exitCode = 1; logger.Write($"启动失败：{ex.GetType().Name}：{ex.Message}");
             MessageBox.Show($"启动未完成：{ex.Message}\n\n请先在 UU 和战网手动登录并启用记住/自动登录，确认 UU 会员有效、游戏更新完成。\n不会自动关闭外部程序或停止加速。\n日志：{logger.LogPath}", $"StormHeroesLauncher {AboutSafetyContent.Version}", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
+            try { progressWindow?.CloseForShutdown(); } catch { }
 #if DEVELOPER_OBSERVER
             if (observer != null) await observer.StopAsync();
 #endif
             if (owned) mutex!.ReleaseMutex(); mutex?.Dispose(); Shutdown(exitCode);
         }
+    }
+    private static async Task FinishProgressAsync(LaunchProgressWindow? window, AppLogger logger)
+    {
+        try { if (window != null) await window.FinishAsync(); }
+        catch (Exception ex) { logger.Write($"Progress UI close failed: {ex.GetType().Name}; launch result unchanged."); }
     }
 }

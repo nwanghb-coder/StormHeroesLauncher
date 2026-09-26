@@ -6,9 +6,19 @@ public sealed class HeroesLaunchWorkflow(
     Func<CancellationToken, Task<HeroesBoostStatus>> startBoost,
     Func<CancellationToken, Task> ensureBattleNet,
     Func<CancellationToken, Task> launchHeroes,
-    Action validateInstallation, AppLogger logger)
+    Action validateInstallation, AppLogger logger, LaunchProgress? progress = null)
 {
     public async Task RunAsync(CancellationToken token)
+    {
+        try
+        {
+            progress?.Report(LaunchState.Initializing);
+            await RunCoreAsync(token);
+            progress?.Report(LaunchState.GameReady);
+        }
+        catch { progress?.Report(LaunchState.Failed); throw; }
+    }
+    private async Task RunCoreAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         if (await isGameRunning(token))

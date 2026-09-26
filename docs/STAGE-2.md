@@ -1,6 +1,6 @@
 # Stage 2 — Feature Complete
 
-Development branch: `stage2-feature-complete`. Current version: `0.3.0-dev.2` (entry baseline was `0.3.0-dev.1`).
+Development branch: `stage2-feature-complete`. Current version: `0.3.0-dev.3` (entry baseline was `0.3.0-dev.1`).
 Use sequential SemVer development versions, then alpha/beta/rc/stable when appropriate.
 Keep the executable name `StormHeroesLauncher.exe`.
 
@@ -10,15 +10,17 @@ Keep the executable name `StormHeroesLauncher.exe`.
 2. Developer-only UU/Battle.net update observer: design before implementation. Use a separate build configuration or compile-time feature gate that excludes the capability from normal releases; never depend on remembering to remove it. Read-only JSONL may record version/file/path changes, process-tree and updater/helper lifetimes, visible top-level window classes, and observation timestamps/durations. Observe argument shapes only where safely available and redact values; never collect authentication material. Distinguish observed facts from inferred update stages. No process-memory access, hooks, packet capture or external-app modification. Check About/Safety wording before enabling this behavior.
 3. Define a launch-state model independent of visual widgets, then a compact, replaceable progress UI. Candidate states: Initializing, StartingUU, PreparingUU, Boosting, StartingBattleNet, WaitingForBattleNet, StartingHeroes, PreparingHeroes, GameReady, Failed. Define readiness evidence and failure transitions before connecting UI. Keep the Heroes preparing-game-data window visible until equivalent feedback is reliable. Final visual design belongs to Stage 3.
 
-Current workstream: **Developer Observer v1 implemented locally**, with normal builds physically
-excluding observer types. See [OBSERVER.md](OBSERVER.md) for build flags, JSONL schema, lifetime,
-collection limits and daily use. Command-line observation is skipped in v1. Normal offline tests:
-251 passed; Observer offline tests: 309 passed. Both self-contained x64 packages passed static
-verification. No real UU/Battle.net/game/helper/UAC scenario was run. Real update evidence remains
-to be collected during developer daily use. Progress UI has not started.
+Current workstream: **Minimal Progress UI v1 implemented locally**. See [PROGRESS.md](PROGRESS.md)
+for semantic states, deterministic percentages, routing/lifecycle and manual acceptance. The Heroes
+preparing-game-data dialog remains visible. No final Stage 3 styling was started.
+Developer Observer v1 remains unchanged; normal builds physically exclude its implementation.
+See [OBSERVER.md](OBSERVER.md) for its build flags, JSONL schema and daily use.
+Normal offline tests: 274 passed; Observer offline tests: 332 passed. Both self-contained x64
+packages passed static verification. No real UU/Battle.net/game/helper/UAC scenario was run.
+Real progress-UI acceptance and update evidence collection remain manual next steps.
 
 Git/GitHub baseline synchronization and the frozen Friend-0.2 pre-release are complete.
-This observer implementation is a local commit only; do not push without explicit instruction.
+Observer and progress implementations are local commits only; do not push without explicit instruction.
 
 ## Preserved architecture
 

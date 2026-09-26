@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 namespace StormHeroesLauncher.Services;
-public sealed class HeroesProcessService(AppLogger logger, string SwitcherPath)
+public sealed class HeroesProcessService(AppLogger logger, string SwitcherPath, Models.LaunchProgress? progress = null)
 {
     public static readonly TimeSpan GameTimeout = TimeSpan.FromSeconds(30);
     public void ValidateInstallation()
@@ -28,8 +28,10 @@ public sealed class HeroesProcessService(AppLogger logger, string SwitcherPath)
         var info = CreateStartInfo(SwitcherPath);
         logger.WriteOperation("启动 HeroesSwitcher（仅一次，普通权限）", new { info.FileName, info.WorkingDirectory, Arguments = info.ArgumentList.ToArray() });
         var launchStarted = DateTime.UtcNow;
+        progress?.Report(Models.LaunchState.StartingHeroes);
         using var switcher = Process.Start(info);
         if (switcher == null) throw new InvalidOperationException("HeroesSwitcher 未返回启动进程。");
+        progress?.Report(Models.LaunchState.PreparingHeroes);
         var timer = Stopwatch.StartNew();
         while (timer.Elapsed < GameTimeout)
         {

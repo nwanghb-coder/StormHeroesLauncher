@@ -2,7 +2,9 @@
 
 ## 1. Current milestone
 
-Stage 2 / Feature Complete is active on `stage2-feature-complete`, currently `0.3.0-dev.2`. Developer Observer v1 is implemented behind `DeveloperObserver=true`; normal builds physically exclude observer code. See docs/OBSERVER.md, docs/STAGE-2.md and docs/GIT-WORKFLOW.md. Progress UI has not started. Subsequent development builds use 0.3.0-dev.3, etc., followed when appropriate by alpha, beta, rc and stable. New development does not use Friend naming.
+Stage 2 / Feature Complete is active on `stage2-feature-complete`, currently `0.3.0-dev.3`. Minimal Progress UI v1 is implemented in both builds, backed by a WPF-independent semantic state model. Developer Observer v1 remains behind `DeveloperObserver=true`; normal builds physically exclude observer code. See docs/PROGRESS.md, docs/OBSERVER.md, docs/STAGE-2.md and docs/GIT-WORKFLOW.md. Final Stage 3 visual design has not started. Subsequent development builds use 0.3.0-dev.4, etc., followed when appropriate by alpha, beta, rc and stable. New development does not use Friend naming.
+
+Progress UI v1 validation (2026-09-26): 274 normal and 332 observer offline checks passed. Offscreen WPF rendering and dispatcher/lifecycle checks passed. Both self-contained x64 portable packages passed static validation (normal ObserverTypes=0; developer ObserverTypes=27). Outputs: artifacts/Stage2-0.3.0-dev.3-Normal and artifacts/Stage2-0.3.0-dev.3-Observer. No real UU/Battle.net/game/WindowHelper/UAC was run. No push, tag, merge or public ZIP for this work; manual acceptance remains pending.
 
 Observer v1 validation (2026-09-26): 251 normal and 309 observer offline checks passed using fake observation sources. Both self-contained x64 portable packages passed verification; packaged normal assembly has zero observer types, developer assembly has 27. Outputs: artifacts/Stage2-0.3.0-dev.2-Normal and artifacts/Stage2-0.3.0-dev.2-Observer. No real UU/Battle.net/game, WindowHelper or UAC was run. Source changes are local only; no push, milestone tag or new release for this work.
 
@@ -83,7 +85,7 @@ No DLL injection, hooks, UI Automation/MSAA launch actions, process-memory read/
 
 ## 10. Current visual behavior
 
-UU and Battle.net startup flashes are reduced to the accepted friend-build level, not guaranteed absent in every frame. Heroes' preparing-game-data window intentionally remains visible as feedback during the long wait before the game appears. Earlier preparation-window suppression code is not active in the launch flow. Progress UI is deferred. Do not silently re-enable suppression.
+UU and Battle.net startup flashes are reduced to the accepted friend-build level, not guaranteed absent in every frame. Heroes' preparing-game-data window intentionally remains visible alongside the new compact progress window. Earlier preparation-window suppression code is not active in the launch flow. Do not silently re-enable suppression. The progress window appears after routing confirms normal launch, before final validation/UU startup; discovery/CLI preparation used to decide Settings routing remains before the window. It reports fixed stage percentages, briefly shows completion for 350 ms, and closes before the developer observer tail ends. Failure briefly shows Failed before closing and preserving the existing error dialog. Settings/import/About routes never show progress.
 
 ## 11. Friend-release accepted behavior
 
@@ -93,13 +95,13 @@ Portable/no installer; no preinstalled .NET; one root user-facing EXE; one doubl
 
 - Windows 10 x64 manually tested; Windows 11 x64 expected, not manually verified.
 - External tray settings are manual; application updates can change external behavior.
-- Heroes preparation dialog remains visible; progress UI deferred.
+- Heroes preparation dialog remains visible; new progress UI still needs real launch/DPI/focus acceptance.
 - Settings needs later redesign; neutral temporary icon is not final branding.
 - No public-release code-signing/authenticity system; release hashes are integrity references only.
 - No multi-accelerator support yet.
-- AboutSafetyTests now validate 0.3.0-dev.2, version-prefixed Build ID and build-specific Safety text. The historical test remains unchanged on the frozen tag.
+- AboutSafetyTests now validate 0.3.0-dev.3, version-prefixed Build ID and unchanged build-specific Safety text. The historical test remains unchanged on the frozen tag.
 - Developer Observer v1 is polling-based; short-lived processes/windows and outside-root updater families without a live parent link may be missed. Inferred update sessions are not updater-confirmed results. Real update-scenario validation is pending.
-- Developer observation lasts two minutes after successful launch workflow completion (confirmed game presence), at most 15 minutes total, plus up to two seconds teardown. The existing launch mutex remains held during the tail, so repeat launcher/settings invocations exit as duplicates until it finishes. Normal builds retain immediate workflow-end exit.
+- Developer observation lasts two minutes after successful launch workflow completion (confirmed game presence), at most 15 minutes total, plus up to two seconds teardown. The existing launch mutex remains held during the tail, so repeat launcher/settings invocations exit as duplicates until it finishes. Progress UI closes independently; normal builds exit after the brief completion display.
 
 ## 13. Future requirements already agreed
 
@@ -108,7 +110,7 @@ Portable/no installer; no preinstalled .NET; one root user-facing EXE; one doubl
 - Battle.net background-authentication experiment: whether HeroesSwitcher wakes fully closed Battle.net.
 - Game updates; UU membership/expiration detection; UU update handling.
 - Multiple accelerator provider/adapter architecture; node/latency testing.
-- Translation later; progress UI later.
+- Translation later; final progress visual design in Stage 3.
 - Configuration migration; reset/default + diagnostics mode; version-update notification.
 - Final branded UI/icon.
 - Public-release authenticity: Authenticode, SHA-256, Build ID, signed release manifest, installation verification and support report.

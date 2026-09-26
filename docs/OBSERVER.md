@@ -1,4 +1,7 @@
-# Developer Observer v1 — 0.3.0-dev.2
+# Developer Observer v1 — current package 0.3.0-dev.3
+
+Initially implemented in 0.3.0-dev.2. The observer implementation/schema remain unchanged in
+0.3.0-dev.3; the new progress window closes before the existing background observation tail ends.
 
 This local developer build records passive UU/Battle.net update evidence while the normal
 launcher is used. It cannot start, stop, pause, accelerate or configure an update. It adds no
@@ -27,8 +30,8 @@ The script uses the existing Portable publish profiles and verifies the two-EXE 
 including observer type presence/absence inside the actual bundled managed assembly.
 It refuses to overwrite populated artifact folders. Outputs:
 
-- `artifacts/Stage2-0.3.0-dev.2-Normal/`
-- `artifacts/Stage2-0.3.0-dev.2-Observer/`
+- `artifacts/Stage2-0.3.0-dev.3-Normal/`
+- `artifacts/Stage2-0.3.0-dev.3-Observer/`
 
 Equivalent MSBuild selection is `-p:DeveloperObserver=false` or `-p:DeveloperObserver=true` on
 `dotnet build`, `dotnet run` (tests), or `dotnet publish`. Publishing needs `-p:PublishProfile=Portable`
@@ -156,7 +159,7 @@ best-effort on crash, forced exit, disk loss or stuck OS calls; absence means in
 Real UU/Battle.net updates, game launches, WindowHelper and UAC are intentionally not exercised by
 offline verification. Daily-use evidence is needed to evaluate real updater behavior.
 
-## v1 validation record
+## Initial v1 validation record (0.3.0-dev.2)
 
 SDK 10.0.401; normal suite 251 checks passed; developer suite 309 checks passed.
 Both Portable x64 publishes succeeded and passed bundle/runtime/layout/path verification.

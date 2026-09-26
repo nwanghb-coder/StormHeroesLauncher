@@ -4,8 +4,8 @@ public sealed class UuService
 {
     private readonly UuElevationFlow flow;
     private readonly AppLogger logger;
-    public UuService(AppLogger logger,string launcherPath)
-    { this.logger = logger; flow = new(logger,new UuTrayNative(),new UuElevationRunner(logger),launcherPath); }
+    public UuService(AppLogger logger,string launcherPath,Models.LaunchProgress? progress = null)
+    { this.logger = logger; flow = new(logger,new UuTrayNative(),new UuElevationRunner(logger),launcherPath,progress); }
     public Task<string> DetectOrStartAsync(CancellationToken token) => Task.Run(async () => {
         try { return await flow.EnsureAsync(token); }
         catch (OperationCanceledException) { throw; }

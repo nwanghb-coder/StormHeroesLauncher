@@ -1,9 +1,10 @@
 # StormHeroesLauncher — Stage 2: Feature Complete
 
-Current development version: **0.3.0-dev.2**, on `stage2-feature-complete`.
+Current development version: **0.3.0-dev.3**, on `stage2-feature-complete`.
 Developer Observer v1 is implemented behind an explicit compile-time build property; normal builds
 exclude its implementation. See [Observer build and daily-use instructions](docs/OBSERVER.md).
-Progress UI remains deferred.
+Minimal launch progress UI v1 is enabled in both builds; see [state mapping and manual acceptance](docs/PROGRESS.md).
+Final Stage 3 visual design remains deferred.
 
 See [PROJECT-STATE.md](PROJECT-STATE.md) for current behavior and safety boundaries,
 [Stage 2 roadmap](docs/STAGE-2.md) for work order, and

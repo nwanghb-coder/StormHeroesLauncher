@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 $flavor = if ($DeveloperObserver) { 'Observer' } else { 'Normal' }
 $flag = if ($DeveloperObserver) { 'true' } else { 'false' }
-$package = Join-Path $root ('artifacts\Stage2-0.3.0-dev.2-' + $flavor)
+$package = Join-Path $root ('artifacts\Stage2-0.3.0-dev.3-' + $flavor)
 if (Test-Path -LiteralPath $package) {
     if (Get-ChildItem -LiteralPath $package -Force | Select-Object -First 1) {
         throw "Output already populated: $package. Preserve it or choose a new version before publishing again."

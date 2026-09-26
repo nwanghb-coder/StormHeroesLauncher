@@ -59,6 +59,8 @@ public sealed class SettingsStore(string? path = null)
 }
 public static class StartupRouting
 {
+    public static bool ShowLaunchProgress(IEnumerable<string> args, bool shiftHeld, bool valid, bool loadFailed = false) =>
+        !Services.ShortcutImport.IsImport(args.ToArray()) && !OpenSettings(args, shiftHeld, valid, loadFailed);
     public static bool OpenSettings(IEnumerable<string> args, bool shiftHeld, bool valid, bool loadFailed = false) =>
         loadFailed || !valid || shiftHeld || args.Contains("--settings", StringComparer.OrdinalIgnoreCase);
 }

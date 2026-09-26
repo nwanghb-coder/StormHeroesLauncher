@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using System.Runtime.InteropServices;
 namespace StormHeroesLauncher.Services;
-public sealed class BattleNetService(AppLogger logger, string ExecutablePath, bool manageWindows = false)
+public sealed class BattleNetService(AppLogger logger, string ExecutablePath, bool manageWindows = false, Models.LaunchProgress? progress = null)
 {
     public static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
     public void ValidateInstallation()
@@ -23,6 +23,7 @@ public sealed class BattleNetService(AppLogger logger, string ExecutablePath, bo
             if (DesktopProcessState.Find("Battle.net").Count == 0)
             {
                 logger.Write($"正常权限启动 Battle.net：{ExecutablePath}");
+                progress?.Report(Models.LaunchState.StartingBattleNet);
                 early?.MarkLaunch();
                 using var process = Process.Start(new ProcessStartInfo(ExecutablePath)
                 {
@@ -32,6 +33,7 @@ public sealed class BattleNetService(AppLogger logger, string ExecutablePath, bo
             }
         }
         else logger.Write("Battle.net 已运行，不重复启动。");
+        progress?.Report(Models.LaunchState.WaitingForBattleNet);
         logger.Write("等待 Battle.net 可用顶层窗口（已运行的 Chromium 主窗口可处于托盘隐藏状态），最长 60 秒；此检查不能确认账号登录状态。");
         var timer = Stopwatch.StartNew();
         IntPtr lastWindow = IntPtr.Zero;

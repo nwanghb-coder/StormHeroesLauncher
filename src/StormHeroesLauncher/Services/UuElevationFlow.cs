@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Pipes;
 using System.Text.Json;
 using StormHeroesLauncher.WindowSupport;
+using StormHeroesLauncher.Models;
 namespace StormHeroesLauncher.Services;
 public sealed record UuElevationResult(int ExitCode, string Uac, UuTrayReport? Report = null);
 public interface IUuElevation { Task<UuElevationResult> RunAsync(bool cold, string launcher, UuTrayTarget? target, CancellationToken token); }
@@ -73,7 +74,7 @@ public sealed class UuElevationRunner(AppLogger? logger = null) : IUuElevation
         }
     }
 }
-public sealed class UuElevationFlow(AppLogger logger,IUuTrayHost host,IUuElevation elevation,string launcher)
+public sealed class UuElevationFlow(AppLogger logger,IUuTrayHost host,IUuElevation elevation,string launcher,LaunchProgress? progress = null)
 {
     private bool helperRequested;
     private async Task<UuElevationResult> Helper(bool cold,UuTrayTarget? target,CancellationToken token)
@@ -91,6 +92,7 @@ public sealed class UuElevationFlow(AppLogger logger,IUuTrayHost host,IUuElevati
         token.ThrowIfCancellationRequested();
         if (!host.Running())
         {
+            progress?.Report(LaunchState.StartingUU);
             if (!host.ValidateLauncher(launcher)) return "UU 加速器：启动器签名或路径验证失败";
             var result = await Helper(true,null,token);
             if (result.ExitCode == 1223) return "UU 加速器：启动已取消";
@@ -99,6 +101,7 @@ public sealed class UuElevationFlow(AppLogger logger,IUuTrayHost host,IUuElevati
             if (result.ExitCode != 0 || !host.Running()) return "UU 加速器：启动或托盘确认失败；已停止流程，不重试 UAC";
             return "UU 加速器：启动成功";
         }
+        progress?.Report(LaunchState.PreparingUU);
         try
         {
             var target = host.FindMain();

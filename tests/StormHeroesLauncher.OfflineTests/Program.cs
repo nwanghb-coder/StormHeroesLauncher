@@ -262,6 +262,7 @@ AboutSafetyTests.Run(Assert);
 IconTests.Run(logger,Assert);
 PortableTests.Run(Assert);
 await ObserverBuildTests.Run(Assert);
+await LaunchProgressTests.Run(logger, Assert);
 #if DEVELOPER_OBSERVER
 await ObserverTests.Run(Assert);
 #endif

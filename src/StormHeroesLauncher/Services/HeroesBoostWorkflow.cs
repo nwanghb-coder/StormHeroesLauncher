@@ -4,7 +4,7 @@ using StormHeroesLauncher.Models;
 namespace StormHeroesLauncher.Services;
 
 public sealed class HeroesBoostWorkflow(Func<CancellationToken, Task<string>> ensureUu,
-    IUuCliService cli, UuCliOptions options, AppLogger logger)
+    IUuCliService cli, UuCliOptions options, AppLogger logger, LaunchProgress? progress = null)
 {
     public async Task<HeroesBoostStatus> StartAsync(Action<string> reportUu, CancellationToken token)
     {
@@ -14,8 +14,10 @@ public sealed class HeroesBoostWorkflow(Func<CancellationToken, Task<string>> en
         if (result is not ("UU 加速器：已运行" or "UU 加速器：启动成功"))
             throw new InvalidOperationException(result);
         token.ThrowIfCancellationRequested();
+        progress?.Report(LaunchState.PreparingUU);
         await PollAsync(readyOnly: true, token);
         // Never retry start automatically: an uncertain response may already have changed acceleration.
+        progress?.Report(LaunchState.Boosting);
         await cli.StartHeroesBoostAsync(token);
         return await PollAsync(readyOnly: false, token);
     }
