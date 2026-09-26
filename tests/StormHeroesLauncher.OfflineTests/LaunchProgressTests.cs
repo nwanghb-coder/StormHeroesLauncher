@@ -107,7 +107,7 @@ public static class LaunchProgressTests
                 window.Close(); closeIgnored = !closed;
                 await Task.Run(() => model.Report(LaunchState.WaitingForBattleNet));
                 await dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
-                updated = window.Displayed.Percentage == 65 && window.Title == "StormHeroesLauncher" && window.Icon != null &&
+                updated = window.Displayed.Percentage == 65 && window.Title == "HOSLauncher" && window.Icon != null &&
                     window.WindowStyle == WindowStyle.None && window.ResizeMode == ResizeMode.NoResize && window.Width == 340 && !window.Topmost;
                 IEnumerable<DependencyObject> Walk(DependencyObject node)
                 { yield return node; foreach (var item in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>()) foreach (var child in Walk(item)) yield return child; }

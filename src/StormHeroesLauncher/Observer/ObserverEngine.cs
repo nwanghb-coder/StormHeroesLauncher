@@ -21,7 +21,7 @@ public sealed class ObserverEngine(IObserverSink sink, IObserverClock clock, str
         clock.UtcNow, clock.Elapsed.TotalMilliseconds, source, name, SessionId, data));
     public void Start() => Emit(Family.Observer, "ObserverStarted", new
     {
-        observerBuild = true, version = Services.AboutSafetyContent.Version, pollMilliseconds = 500,
+        product = "HOSLauncher", observerBuild = true, version = Services.AboutSafetyContent.Version, pollMilliseconds = 500,
         maximumLifetimeSeconds = 900, afterGameSeconds = 120, commandLinesCollected = false, windowTitlesCollected = false
     });
     public bool ProcessSnapshot(IReadOnlyList<RelatedProcess> snapshot)

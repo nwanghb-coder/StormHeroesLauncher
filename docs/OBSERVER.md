@@ -1,4 +1,4 @@
-# Developer Observer — current package 0.3.0-dev.5
+# HOSLauncher Developer Observer — current package 0.3.0-dev.6
 
 Initially implemented in 0.3.0-dev.2. Dev.4 separates the bounded tail into a developer-only
 process, freeing the launch mutex for warm relaunch. JSONL schema version remains 1.
@@ -19,7 +19,7 @@ to false. Normal builds remove `Observer/**/*.cs` from compilation, omit the int
 and cannot activate the observer through settings, arguments or a runtime checkbox. An assembly
 metadata field records the flag. `Directory.Build.props` separates developer intermediates/output
 under `obj/observer/` and `bin/observer/` to prevent incremental-build contamination. Both builds
-retain the product name, asInvoker manifest and portable helper path. No second codebase exists.
+retain the HOSLauncher product name, asInvoker manifest and portable helper path. No second codebase exists.
 
 From the project root, with the .NET 10 SDK and cached/restorable dependencies:
 
@@ -34,8 +34,8 @@ The script uses the existing Portable publish profiles and verifies the two-EXE 
 including observer type presence/absence inside the actual bundled managed assembly.
 It refuses to overwrite populated artifact folders. Outputs:
 
-- `artifacts/Stage2-0.3.0-dev.5-Normal/`
-- `artifacts/Stage2-0.3.0-dev.5-Observer/`
+- `artifacts/Stage2-0.3.0-dev.6-Normal/`
+- `artifacts/Stage2-0.3.0-dev.6-Observer/`
 
 Equivalent MSBuild selection is `-p:DeveloperObserver=false` or `-p:DeveloperObserver=true` on
 `dotnet build`, `dotnet run` (tests), or `dotnet publish`. Publishing needs `-p:PublishProfile=Portable`
@@ -153,8 +153,8 @@ best-effort on crash, forced exit, disk loss or stuck OS calls; absence means in
 
 1. Wait for any previous launcher/observer run to finish. Do not overwrite the frozen Friend-0.2 folder.
 2. Copy the **entire Observer output folder** to a separate daily-use folder. Keep
-   `StormHeroesLauncher.exe` and `app/StormHeroesLauncher.WindowHelper.exe` together.
-3. Point your desktop shortcut to that folder's StormHeroesLauncher.exe, or double-click it there.
+   `HOSLauncher.exe` and `app/HOSLauncher.WindowHelper.exe` together.
+3. Point your desktop shortcut to that folder's HOSLauncher.exe, or double-click it there.
    Existing LOCALAPPDATA settings are reused; no settings migration or checkbox is required.
 4. Use UU/Battle.net normally, including real updates when they occur. The observer does not initiate
    updates. The existing manual tray settings and login requirements still apply.

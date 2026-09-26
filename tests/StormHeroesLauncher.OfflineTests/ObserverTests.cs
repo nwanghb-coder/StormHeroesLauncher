@@ -35,7 +35,7 @@ public static class ObserverTests
         });
         warmThread.Start(); warmThread.Join(); tailEnd.Set();
         check(warmAcquired, "warm launcher can acquire workflow mutex while independent tail remains active");
-        var tailInfo = ObserverTail.CreateStartInfo(@"C:\Package\StormHeroesLauncher.exe", @"C:\UU\uu_launcher.exe", @"C:\Battle.net\Battle.net.exe", Guid.NewGuid().ToString("N"), 120);
+        var tailInfo = ObserverTail.CreateStartInfo(@"C:\Package\HOSLauncher.exe", @"C:\UU\uu_launcher.exe", @"C:\Battle.net\Battle.net.exe", Guid.NewGuid().ToString("N"), 120);
         check(!tailInfo.UseShellExecute && tailInfo.CreateNoWindow && tailInfo.ArgumentList[0] == "--observer-tail" && tailInfo.ArgumentList.Count == 5,
             "detached worker uses explicit narrow developer route without shell or elevation");
         check(await ObserverTail.RunAsync(["--observer-tail", "", "", "bad", "121"]) == 2, "worker rejects invalid lifetime/session before observation");

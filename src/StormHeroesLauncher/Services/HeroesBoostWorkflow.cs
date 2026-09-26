@@ -20,7 +20,9 @@ public sealed class HeroesBoostWorkflow(Func<CancellationToken, Task<string>> en
                 {
                     var existing = await cli.GetHeroesBoostStatusAsync(token);
                     token.ThrowIfCancellationRequested();
-                    if (existing.Matches(options) && await isUuRunning(token))
+                    bool reusable = existing.Matches(options) && await isUuRunning(token);
+                    LogEvidence(existing, reusable);
+                    if (reusable)
                     { logger.Write("WarmFastPath UU=AlreadyBoosting UUTargetBoosting=True"); return existing; }
                     logger.Write("WarmFastPath Decision=Fallback Reason=UuTargetNotConfirmed");
                 }
@@ -39,6 +41,7 @@ public sealed class HeroesBoostWorkflow(Func<CancellationToken, Task<string>> en
         progress?.Report(LaunchState.PreparingUU);
         var status = await PollAsync(readyOnly: true, token);
         token.ThrowIfCancellationRequested();
+        LogEvidence(status, status.Matches(options));
         if (status.Matches(options))
         { logger.Write("WarmFastPath UU=AlreadyBoosting UUTargetBoosting=True"); return status; }
         // Never retry start automatically: an uncertain response may already have changed acceleration.
@@ -46,6 +49,14 @@ public sealed class HeroesBoostWorkflow(Func<CancellationToken, Task<string>> en
         token.ThrowIfCancellationRequested();
         await cli.StartHeroesBoostAsync(token);
         return await PollAsync(readyOnly: false, token);
+    }
+
+    private void LogEvidence(HeroesBoostStatus status, bool reusable)
+    {
+        string zone = HeroesBoostStatus.Evidence(status.ZoneId, options.ZoneId);
+        string server = HeroesBoostStatus.Evidence(status.ServerId, options.ServerId);
+        logger.Write($"WarmFastPath GameMatch={status.GameId == options.GameId} ZoneEvidence={zone} ServerEvidence={server} " +
+            $"Contradiction={zone == "PresentMismatch" || server == "PresentMismatch"} Decision={(reusable ? "Reuse" : "Fallback")}");
     }
 
     public Task<HeroesBoostStatus> WaitStoppedAsync(CancellationToken token) =>

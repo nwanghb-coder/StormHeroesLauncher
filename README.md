@@ -1,9 +1,9 @@
-# StormHeroesLauncher — Stage 2: Feature Complete
+# HOSLauncher — Stage 2: Feature Complete
 
-Current development version: **0.3.0-dev.5**, on `stage2-feature-complete`.
-Dev.5 adds strict warm-state reuse, focused-window Esc cancellation and developer-only read-only
-UU startup-window evidence. See [decision rules and manual acceptance](docs/DEV-5.md), including
-the fallback when CLI status omits zone/server identifiers.
+Current development version: **0.3.0-dev.6**, on `stage2-feature-complete`.
+Dev.6 reuses game-matched active UU acceleration when optional zone/server fields are missing,
+while rejecting explicit conflicts. The visible product is now HOSLauncher. See
+[decision rules, rename boundaries and manual acceptance](docs/DEV-6.md).
 Developer Observer v1 is implemented behind an explicit compile-time build property; normal builds
 exclude its implementation. See [Observer build and daily-use instructions](docs/OBSERVER.md).
 Compact borderless progress, stable game-window readiness and bounded preparation-dialog hiding are
@@ -20,7 +20,7 @@ The [release record](docs/releases/friend-0.2.txt) preserves the original packag
 The frozen ZIP remains under `artifacts/Friend-0.2-Release/`; binaries are outside Git.
 Do not overwrite that package or move the tag.
 
-The portable layout remains `StormHeroesLauncher.exe` plus `app/StormHeroesLauncher.WindowHelper.exe`,
+The current portable layout is `HOSLauncher.exe` plus `app/HOSLauncher.WindowHelper.exe`,
 both self-contained x64. Settings, logs and CLI cache use `%LOCALAPPDATA%\StormHeroesLauncher`.
 
 Offline validation with .NET 10 SDK and previously restored dependencies:

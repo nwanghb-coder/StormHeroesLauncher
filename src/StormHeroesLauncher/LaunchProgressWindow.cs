@@ -22,14 +22,14 @@ public sealed class LaunchProgressWindow : Window
         this.progress = progress;
         this.cancel = cancel;
         Displayed = progress.Current;
-        Title = "StormHeroesLauncher";
+        Title = "HOSLauncher";
         Icon = LauncherIcon.Load();
         Width = 340; SizeToContent = SizeToContent.Height; WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize; WindowStartupLocation = WindowStartupLocation.CenterScreen;
         SetResourceReference(BackgroundProperty, SystemColors.WindowBrushKey);
         SetResourceReference(ForegroundProperty, SystemColors.WindowTextBrushKey);
         var panel = new StackPanel { Margin = new Thickness(12) };
-        panel.Children.Add(new TextBlock { Text = "StormHeroesLauncher", FontSize = 14, FontWeight = FontWeights.SemiBold });
+        panel.Children.Add(new TextBlock { Text = "HOSLauncher", FontSize = 14, FontWeight = FontWeights.SemiBold });
         var row = new Grid { Margin = new Thickness(0, 10, 0, 6) };
         row.ColumnDefinitions.Add(new ColumnDefinition());
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });

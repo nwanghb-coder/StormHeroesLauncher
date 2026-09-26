@@ -1,5 +1,8 @@
 # Stage 2 dev.5 — warm reuse, Esc and UU startup evidence
 
+Historical dev.5 record. Dev.6 supersedes its strict optional-metadata rule and product filename;
+see [DEV-6.md](DEV-6.md). Existing Esc and observation behavior remains in use.
+
 Dev.4 manual acceptance was reported broadly successful by the user. Its single-UAC launch,
 UU/Battle.net tray handling, Heroes preparation hiding/readiness, progress layout and detached
 Observer tail are the accepted baseline. Dev.5 does not optimize Battle.net cold-start visuals

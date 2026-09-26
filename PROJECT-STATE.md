@@ -1,12 +1,12 @@
-# StormHeroesLauncher Project State
+# HOSLauncher Project State
 
 ## 1. Current milestone
 
-Stage 2 / Feature Complete is active on `stage2-feature-complete`, currently `0.3.0-dev.5`. Dev.4 was broadly accepted manually by the user: single-UAC, UU/Battle.net behavior, Heroes preparation hiding/readiness, compact progress and independent Observer tail. Dev.5 adds strict warm-state reuse, focused-window Esc cooperative cancellation, and developer-only read-only UU startup-window candidates. See docs/DEV-5.md for exact rules and manual acceptance, plus docs/PROGRESS.md and docs/OBSERVER.md. Stage 3 visual design has not started. Later builds advance from dev.6; no new Friend naming.
+Stage 2 / Feature Complete is active on `stage2-feature-complete`, currently `0.3.0-dev.6`, with user-facing identity HOSLauncher. Dev.6 accepts missing optional zone/server metadata for game-matched active UU boosting and rejects explicit conflicts. See docs/DEV-6.md for exact rules, package identity and manual warm acceptance. Project/repository and LOCALAPPDATA/StormHeroesLauncher paths remain unchanged. Esc, observer sampling, cold-start architecture and Heroes readiness/hiding remain the accepted baseline. No Stage 3 work, migration, push, merge or tag.
 
-Dev.5 validation: 303 Normal / 373 Observer offline checks passed. No real UU/Battle.net/Heroes/helper/UAC or native splash test was run. Warm UU reuse requires a fresh boosting response explicitly matching gameId/zoneId/serverId and UU still running; missing zone/server fields use normal fallback and may still issue CLI start. Ready Battle.net reuses the accepted three-sample proxy without cold/tray replay. Esc leaves issued processes and acceleration intact, reports 已取消 and releases the mutex before observer teardown. The developer startup sampler uses 100 ms discovery (35-second bound), then 20 ms polling for five seconds in a separate compatible JSONL session. Normal builds omit it. Main version/Build ID advances; WindowHelper, pipe security, cold suppression and Heroes readiness/hiding are preserved. Outputs: artifacts/Stage2-0.3.0-dev.5-Normal and artifacts/Stage2-0.3.0-dev.5-Observer. Local commit only, no push/merge/tag/ZIP. See docs/DEV-5.md for the required user-run warm/Esc/startup-observation checks.
+Historical Dev.5 validation: 303 Normal / 373 Observer offline checks passed. No real UU/Battle.net/Heroes/helper/UAC or native splash test was run. Warm UU reuse requires a fresh boosting response explicitly matching gameId/zoneId/serverId and UU still running; missing zone/server fields use normal fallback and may still issue CLI start. Ready Battle.net reuses the accepted three-sample proxy without cold/tray replay. Esc leaves issued processes and acceleration intact, reports 已取消 and releases the mutex before observer teardown. The developer startup sampler uses 100 ms discovery (35-second bound), then 20 ms polling for five seconds in a separate compatible JSONL session. Normal builds omit it. Main version/Build ID advances; WindowHelper, pipe security, cold suppression and Heroes readiness/hiding are preserved. Outputs: artifacts/Stage2-0.3.0-dev.5-Normal and artifacts/Stage2-0.3.0-dev.5-Observer. Local commit only, no push/merge/tag/ZIP. See docs/DEV-5.md for the required user-run warm/Esc/startup-observation checks.
 
-Dev.5 portable verification passed for both two-EXE self-contained x64 packages: Normal ObserverTypes=0, developer ObserverTypes=34. Both contain the accepted dev.4 helper byte-for-byte (SHA-256 recorded in docs/DEV-5.md). The publisher now requires that verified historical helper artifact instead of rebuilding its metadata. Safety wording remains accurate and unchanged.
+Historical Dev.5 portable verification passed for both two-EXE self-contained x64 packages: Normal ObserverTypes=0, developer ObserverTypes=34. Both contain the accepted dev.4 helper byte-for-byte (SHA-256 recorded in docs/DEV-5.md). The dev.5 publisher required that verified historical helper artifact instead of rebuilding its metadata. Safety wording remains accurate and unchanged.
 
 Dev.4 validation (2026-09-26): 285 normal / 347 Observer offline checks passed. Three explicitly authorized direct Switcher tests passed, hiding the ownerless #32770 preparation dialog without abnormal game exit and confirming a stable main window around 18 seconds. The final test uses the shared production policy and confirmed graceful cleanup; the first two used exact test-owned termination after a graceful-close attempt. No UU/Battle.net launch, helper or UAC was invoked by these tests. See docs/HEROES-PREP.md for evidence and docs/PROGRESS.md for remaining full-launch/warm-relaunch/DPI acceptance. Outputs: artifacts/Stage2-0.3.0-dev.4-Normal and artifacts/Stage2-0.3.0-dev.4-Observer. Local commit only; no push, merge, tag or ZIP.
 
@@ -28,6 +28,8 @@ Release record: artifacts/Friend-0.2-Release/RELEASE-INFO.txt. Treat the ZIP and
 
 Tracked release-record copy: docs/releases/friend-0.2.txt. Frozen source tag: friend-0.2 at 9dda358225aa0a6df1b4ee9f78664f741381ecd9. At Stage 2 entry, the ZIP and both executable hashes matched the record. Binaries remain outside Git and must be preserved separately.
 
+Dev.6 offline checks: 315 Normal / 385 Observer. Output directories: artifacts/Stage2-0.3.0-dev.6-Normal and artifacts/Stage2-0.3.0-dev.6-Observer. Both use HOSLauncher.exe plus app/HOSLauncher.WindowHelper.exe. No real external applications were run for dev.6; user warm acceptance remains pending. Historical Friend-0.2 artifacts retain their old identity.
+
 ## 2. Product goal
 
 A portable Windows Heroes of the Storm launcher automating NetEase UU startup and acceleration, Battle.net startup, Heroes launch, external-window suppression/native tray behavior, and minimal first-time shortcut configuration. Primary UX: one double-click + at most one standard Windows UAC confirmation + unattended launch afterward.
@@ -45,12 +47,12 @@ No additional phase details have been established here.
 
 C#, .NET 10, WPF, x64, Windows 10/11 target, documented Win32 APIs, SharpCompress pinned to 0.50.4. Both executables use self-contained single-file publishing; no trimming. Freeze built with SDK 10.0.401 and bundled runtime 10.0.12. No preinstalled .NET is required.
 
-## 5. Current portable layout
+## 5. Current portable layout (HOSLauncher)
 
 ```text
-StormHeroesLauncher.exe
+HOSLauncher.exe
 app/
-  StormHeroesLauncher.WindowHelper.exe
+  HOSLauncher.WindowHelper.exe
 ```
 
 Both are self-contained x64 single-file executables. The helper is resolved relative to the main executable, not the working directory. User configuration, logs and CLI cache live under %LOCALAPPDATA%\StormHeroesLauncher. Supported .NET native-library extraction may use the Windows temporary .net cache. Runtime ZIP contains only these two EXEs; no source, tests, PDBs, developer documents or NetEase CLI.
@@ -107,7 +109,7 @@ Portable/no installer; no preinstalled .NET; one root user-facing EXE; one doubl
 - Settings needs later redesign; neutral temporary icon is not final branding.
 - No public-release code-signing/authenticity system; release hashes are integrity references only.
 - No multi-accelerator support yet.
-- AboutSafetyTests validate 0.3.0-dev.5, version-prefixed Build ID and build-specific Safety text. The existing Safety claims remain accurate for read-only startup metadata. WindowHelper remains at the accepted dev.4 version. The frozen tag remains unchanged.
+- AboutSafetyTests validate 0.3.0-dev.6, version-prefixed Build ID and build-specific Safety text. The existing Safety claims remain accurate for read-only startup metadata. WindowHelper operational code is unchanged; dev.6 rebuilds its HOSLauncher name/metadata. The frozen tag remains unchanged.
 - Developer Observer v1 is polling-based; short-lived processes/windows and outside-root updater families without a live parent link may be missed. Inferred update sessions are not updater-confirmed results. Real update-scenario validation is pending.
 - Developer observation continues in a separate process for at most two minutes after successful stable-window readiness, reduced by the main session's remaining 15-minute budget, plus up to two seconds teardown. The worker route never acquires the launch mutex, and sessions/files are independent with parentSessionId links. Correlation baselines restart at handoff. Main launcher exits after its brief progress completion and bounded flush/dispatch; warm relaunch is no longer blocked by the tail.
 

@@ -2,13 +2,14 @@ param([Parameter(Mandatory=$true)][string]$Package, [ValidateSet('Normal','Obser
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path -LiteralPath $Package).Path
 $files=@(Get-ChildItem -LiteralPath $root -Recurse -File)
-$expected=@('StormHeroesLauncher.exe','app\StormHeroesLauncher.WindowHelper.exe')
+$expected=@('HOSLauncher.exe','app\HOSLauncher.WindowHelper.exe')
 $actual=@($files | ForEach-Object { [IO.Path]::GetRelativePath($root,$_.FullName) })
 if(@(Compare-Object ($expected|Sort-Object) ($actual|Sort-Object)).Count){throw 'Unexpected portable layout'}
 $sdk=Join-Path (Split-Path (Get-Command dotnet).Source) ('sdk\'+(& dotnet --version)+'\Microsoft.NET.HostModel.dll')
 $asm=[Reflection.Assembly]::LoadFrom($sdk)
 $isBundle=$asm.GetType('Microsoft.NET.HostModel.Bundle.Bundler').GetMethod('IsBundle',[Reflection.BindingFlags]'Static,NonPublic,Public')
 foreach($file in $files){
+ if($file.VersionInfo.ProductName -ne 'HOSLauncher'){throw ('Unexpected product metadata: '+$file.Name)}
  $arguments=[object[]]@($file.FullName,[long]0)
  if(!$isBundle.Invoke($null,$arguments)){throw 'Not a .NET single-file bundle'}
  $stream=[IO.File]::OpenRead($file.FullName);$reader=[IO.BinaryReader]::new($stream)
@@ -22,12 +23,12 @@ foreach($file in $files){
    $offset=$reader.ReadInt64();$size=$reader.ReadInt64();$compressed=$reader.ReadInt64();$type=$reader.ReadByte();$name=$reader.ReadString()
    if($compressed -ne 0){throw 'Unexpected bundle compression'}
    $names+=$name
-   if($name -eq 'StormHeroesLauncher.dll'){$mainOffset=$offset;$mainSize=$size}
+   if($name -eq 'HOSLauncher.dll'){$mainOffset=$offset;$mainSize=$size}
   }
   foreach($required in @('System.Private.CoreLib.dll')){if($required -notin $names){throw ('Missing bundled runtime: '+$required)}}
-  if($file.Name -eq 'StormHeroesLauncher.exe' -and 'PresentationFramework.dll' -notin $names){throw 'WPF runtime not bundled'}
+  if($file.Name -eq 'HOSLauncher.exe' -and 'PresentationFramework.dll' -notin $names){throw 'WPF runtime not bundled'}
   if($names | Where-Object {$_ -match '\.pdb$|\.cs$|OfflineTests|(^|/)Diagnostics/|(^|/)uu-cli\.exe$|(^|/)settings\.json$'}){throw 'Development or user/CLI files in bundle'}
-  if($BuildFlavor -and $file.Name -eq 'StormHeroesLauncher.exe'){
+  if($BuildFlavor -and $file.Name -eq 'HOSLauncher.exe'){
    if(!$mainSize){throw 'Main managed assembly missing'}
    $stream.Position=$mainOffset
    $managed=[IO.MemoryStream]::new($reader.ReadBytes([int]$mainSize))
@@ -74,6 +75,6 @@ public static class PortablePathScan {
 "@
 foreach($file in $files){if([PortablePathScan]::HasDeveloperPath($file.FullName)){throw ('Developer absolute path found in '+$file.Name)}}
 Write-Output 'PASS: exact two-EXE layout; no PDB/test/source/CLI artifacts; no configured developer-path byte strings.'
-$main=(Get-Item (Join-Path $root 'StormHeroesLauncher.exe')).Length
-$app=($files | Where-Object FullName -NE (Join-Path $root 'StormHeroesLauncher.exe') | Measure-Object Length -Sum).Sum
+$main=(Get-Item (Join-Path $root 'HOSLauncher.exe')).Length
+$app=($files | Where-Object FullName -NE (Join-Path $root 'HOSLauncher.exe') | Measure-Object Length -Sum).Sum
 Write-Output ('MainBytes='+$main+' AppBytes='+$app+' TotalBytes='+($main+$app))

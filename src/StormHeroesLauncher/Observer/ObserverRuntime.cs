@@ -172,7 +172,7 @@ public static class ObserverTail
 {
     public static ProcessStartInfo CreateStartInfo(string executable, string uu, string battleNet, string parent, int seconds)
     {
-        if (!Path.IsPathFullyQualified(executable) || !Path.GetFileName(executable).Equals("StormHeroesLauncher.exe", StringComparison.OrdinalIgnoreCase))
+        if (!Path.IsPathFullyQualified(executable) || !Path.GetFileName(executable).Equals("HOSLauncher.exe", StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("Unexpected worker executable");
         var info = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = AppContext.BaseDirectory };
         foreach (string argument in new[] { "--observer-tail", uu, battleNet, parent, seconds.ToString(System.Globalization.CultureInfo.InvariantCulture) }) info.ArgumentList.Add(argument);

@@ -6,6 +6,6 @@ public static class PackagePaths
     public static string HelperUnder(string executableDirectory)
     {
         if(!Path.IsPathFullyQualified(executableDirectory))throw new ArgumentException("Executable base directory must be absolute");
-        return Path.Combine(executableDirectory,"app","StormHeroesLauncher.WindowHelper.exe");
+        return Path.Combine(executableDirectory,"app","HOSLauncher.WindowHelper.exe");
     }
 }

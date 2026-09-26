@@ -36,6 +36,7 @@ public static class ProcessSelection
         return selected.Values.ToArray();
     }
     private static bool Excluded(string name) => name.StartsWith("StormHeroesLauncher", StringComparison.OrdinalIgnoreCase) ||
+        name.StartsWith("HOSLauncher", StringComparison.OrdinalIgnoreCase) ||
         name.StartsWith("Heroes", StringComparison.OrdinalIgnoreCase);
 }
 

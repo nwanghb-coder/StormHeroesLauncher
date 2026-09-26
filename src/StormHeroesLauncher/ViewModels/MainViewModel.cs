@@ -36,7 +36,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         this.dispatcher = dispatcher;
         logger.MessageLogged += OnMessage;
         uuService = new UuService(logger, new SettingsStore().Load().UuLauncherPath);
-        logger.Write("StormHeroesLauncher 程序启动。");
+        logger.Write("HOSLauncher 程序启动。");
         logger.Write($"日志文件：{LogPath}");
         try
         {

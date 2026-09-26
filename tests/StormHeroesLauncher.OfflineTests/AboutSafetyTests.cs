@@ -7,8 +7,11 @@ public static class AboutSafetyTests
     public static void Run(Action<bool,string> check)
     {
         check(AboutSafetyContent.Publisher=="阿黄" && AboutSafetyContent.Email=="441649289@qq.com","About publisher and contact exact");
-        check((AboutSafetyContent.Version == "0.3.0-dev.5" || AboutSafetyContent.Version.StartsWith("0.3.0-dev.5+", StringComparison.Ordinal)) && System.Text.RegularExpressions.Regex.IsMatch(AboutSafetyContent.BuildId, @"\A0\.3\.0-dev\.5-[0-9a-f]{12}\z"),"version from assembly; populated build metadata and deterministic module ID");
+        check((AboutSafetyContent.Version == "0.3.0-dev.6" || AboutSafetyContent.Version.StartsWith("0.3.0-dev.6+", StringComparison.Ordinal)) && System.Text.RegularExpressions.Regex.IsMatch(AboutSafetyContent.BuildId, @"\A0\.3\.0-dev\.6-[0-9a-f]{12}\z"),"version from assembly; populated build metadata and deterministic module ID");
         string support=AboutSafetyContent.SupportInfo;
+        check(support.StartsWith("HOSLauncher\n") && typeof(AboutSafetyContent).Assembly.GetName().Name == "HOSLauncher" &&
+            typeof(AboutSafetyContent).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyProductAttribute), false)
+                .Cast<System.Reflection.AssemblyProductAttribute>().Single().Product == "HOSLauncher", "main assembly product and copied support identity are HOSLauncher");
         check(support.Split('\n').Length==5 && support.Contains("Architecture: x64") && !support.Contains('\\') && !support.Contains("User",StringComparison.OrdinalIgnoreCase) && !support.Contains("IP address",StringComparison.OrdinalIgnoreCase),"support block contains only allowlisted version/build/architecture/OS fields");
         check(AboutSafetyContent.LogsDirectory==System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"StormHeroesLauncher","Logs"),"logs action fixed to launcher-owned folder");
         var uri=new Uri(AboutSafetyContent.FeedbackUri);

@@ -38,7 +38,7 @@ public sealed class HeroesLaunchWorkflow(
         logger.Write("WarmFastPath HeroesRunning=False");
         token.ThrowIfCancellationRequested();
         validateInstallation();
-        logger.Write($"StormHeroesLauncher {AboutSafetyContent.Version}：确保 UU 运行并启动目标游戏加速。");
+        logger.Write($"HOSLauncher {AboutSafetyContent.Version}：确保 UU 运行并启动目标游戏加速。");
         var status = await startBoost(token);
         token.ThrowIfCancellationRequested();
         if (!status.IsReady) throw new InvalidOperationException("目标游戏尚未确认 isBoosting=true 且 status=boosting。");

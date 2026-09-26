@@ -40,7 +40,7 @@ public partial class App : Application
             mutex = new Mutex(false, @"Local\StormHeroesLauncher.Alpha.LaunchWorkflow");
             try { owned = mutex.WaitOne(0); } catch (AbandonedMutexException) { owned = true; }
             if (!owned) { logger.Write("已有启动流程/设置窗口正在运行，重复启动退出。"); return; }
-            logger.Write($"StormHeroesLauncher {AboutSafetyContent.Version} 启动；single-uac-result-v6。");
+            logger.Write($"HOSLauncher {AboutSafetyContent.Version} 启动；single-uac-result-v6。");
             var store = new SettingsStore(); var discovery = new PathDiscovery(logger);
             var cliValidation = new WindowsCliValidation();
             var preparation = new UuCliPreparation(logger, cliValidation, new UuCliArchive());
@@ -138,7 +138,7 @@ public partial class App : Application
             await observerStop;
 #endif
             exitCode = 1; logger.Write($"启动失败：{ex.GetType().Name}：{ex.Message}");
-            MessageBox.Show($"启动未完成：{ex.Message}\n\n请先在 UU 和战网手动登录并启用记住/自动登录，确认 UU 会员有效、游戏更新完成。\n不会自动关闭外部程序或停止加速。\n日志：{logger.LogPath}", $"StormHeroesLauncher {AboutSafetyContent.Version}", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"启动未完成：{ex.Message}\n\n请先在 UU 和战网手动登录并启用记住/自动登录，确认 UU 会员有效、游戏更新完成。\n不会自动关闭外部程序或停止加速。\n日志：{logger.LogPath}", $"HOSLauncher {AboutSafetyContent.Version}", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {

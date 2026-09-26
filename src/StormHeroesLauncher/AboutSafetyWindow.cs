@@ -8,7 +8,7 @@ public sealed class AboutSafetyWindow:Window
     {
         actions ??=new WindowsAboutActions();
         Icon=LauncherIcon.Load();
-        Title="关于 / 安全 — StormHeroesLauncher";Width=650;Height=720;MinWidth=430;MinHeight=400;
+        Title="关于 / 安全 — HOSLauncher";Width=650;Height=720;MinWidth=430;MinHeight=400;
         MaxHeight=SystemParameters.WorkArea.Height*0.9;WindowStartupLocation=WindowStartupLocation.CenterOwner;
         var panel=new StackPanel {Margin=new Thickness(24)};
         Content=new ScrollViewer {Content=panel,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};

@@ -14,7 +14,7 @@ public static class WarmCancelTests
         var options = new UuCliOptions { PollIntervalMilliseconds = 100 };
         HeroesBoostStatus active = new(true, "boosting", null, null, null, null, null, null)
             { GameId = options.GameId, ZoneId = options.ZoneId, ServerId = options.ServerId };
-        var cli = new WarmCli { Status = active };
+        var cli = new WarmCli { Status = active with { ZoneId = null, ServerId = null } };
         var progress = new LaunchProgress(); var emitted = new List<LaunchState>(); progress.Changed += s => emitted.Add(s.State);
         int ensure = 0, battle = 0, game = 0;
         var boost = new HeroesBoostWorkflow(_ => { ensure++; return Task.FromResult("UU 加速器：已运行"); }, cli, options, logger, progress, _ => Task.FromResult(true));
@@ -25,13 +25,27 @@ public static class WarmCancelTests
         check(cli.Starts == 0 && ensure == 0 && battle == 0 && game == 1 && cli.Statuses == 1, "fully warm target boost and Battle.net proxy skip all redundant start actions");
         check(emitted.SequenceEqual(new[] { LaunchState.StartingHeroes, LaunchState.PreparingHeroes, LaunchState.GameReady }), "warm fast path emits only actual Heroes stages, jumping from 5 to 80 percent");
         check(!active.Matches(options with { ServerId = "other" }) && !active.Matches(options with { ZoneId = "other" }) &&
-            !(active with { GameId = null }).Matches(options) && !(active with { ZoneId = null }).Matches(options), "missing/wrong target identifiers cannot authorize boost reuse");
+            !(active with { GameId = null }).Matches(options) && (active with { ZoneId = null }).Matches(options), "game proof remains required while missing optional zone is accepted");
         var data = new BoostStatusData { IsBoosting = true, Boosters = [new() { GameId = options.GameId, ZoneId = options.ZoneId, ServerId = options.ServerId, Status = "boosting" }] };
         check(UuCliService.NormalizeStatus(data, options.GameId).Matches(options), "status normalization preserves explicit game/zone/server from selected booster");
-        check(!UuCliService.NormalizeStatus(new() { IsBoosting = true, GameId = options.GameId, Status = "boosting" }, options.GameId).Matches(options), "legacy target-only status remains uncertain for zone/server reuse");
-        foreach (bool uncertain in new[] { false, true })
+        check(UuCliService.NormalizeStatus(new() { IsBoosting = true, GameId = options.GameId, Status = "boosting" }, options.GameId).Matches(options), "game-matched boosting status reuses acceleration without zone/server fields");
+        foreach (var candidate in new[] { active with { ZoneId = null, ServerId = null }, active,
+            active with { ZoneId = "other" }, active with { ServerId = "other" }, active with { GameId = "other" },
+            active with { IsBoosting = false }, active with { Status = "starting" }, active with { GameId = null }, active with { ZoneId = "" } })
         {
-            var fallback = new WarmCli { Status = active with { IsBoosting = false, Status = "not_boosting" }, AfterStart = active, FailFirst = uncertain };
+            bool reusable = candidate.IsReady && candidate.GameId == options.GameId &&
+                (candidate.ZoneId == null || candidate.ZoneId == options.ZoneId) && (candidate.ServerId == null || candidate.ServerId == options.ServerId);
+            var sampleCli = new WarmCli { Status = candidate, AfterStart = active }; int normalFlow = 0;
+            var stages = new LaunchProgress();
+            await new HeroesBoostWorkflow(_ => { normalFlow++; return Task.FromResult("UU 加速器：已运行"); }, sampleCli, options, logger, stages,
+                _ => Task.FromResult(true)).StartAsync(_ => { }, default);
+            check(sampleCli.Starts == (reusable ? 0 : 1) && normalFlow == (reusable ? 0 : 1) &&
+                (!reusable || stages.Current.State == LaunchState.Initializing), $"reuse/fallback action matrix: game={candidate.GameId} zone={candidate.ZoneId ?? "missing"} server={candidate.ServerId ?? "missing"} state={candidate.Status} boosting={candidate.IsBoosting}");
+        }
+        foreach (var failure in new CliFailureKind?[] { null, CliFailureKind.Timeout, CliFailureKind.InvalidData, CliFailureKind.Rejected })
+        {
+            bool uncertain = failure != null;
+            var fallback = new WarmCli { Status = active with { IsBoosting = false, Status = "not_boosting" }, AfterStart = active, FailFirst = uncertain, FailureKind = failure ?? CliFailureKind.Timeout };
             int ensured = 0;
             await new HeroesBoostWorkflow(_ => { ensured++; return Task.FromResult("UU 加速器：已运行"); }, fallback, options, logger,
                 isUuRunning: _ => Task.FromResult(true)).StartAsync(_ => { }, default);
@@ -143,10 +157,11 @@ public static class WarmCancelTests
         public required HeroesBoostStatus Status;
         public HeroesBoostStatus? AfterStart;
         public bool FailFirst;
+        public CliFailureKind FailureKind = CliFailureKind.Timeout;
         public int Starts, Stops, Statuses;
         public Task<BoostOperationData> StartHeroesBoostAsync(CancellationToken token = default) { token.ThrowIfCancellationRequested(); Starts++; if (AfterStart != null) Status = AfterStart; return Task.FromResult(new BoostOperationData()); }
         public Task<HeroesBoostStatus> GetHeroesBoostStatusAsync(CancellationToken token = default)
-        { token.ThrowIfCancellationRequested(); Statuses++; if (FailFirst && Statuses == 1) throw new UuCliException(CliFailureKind.Timeout, "fake"); return Task.FromResult(Status); }
+        { token.ThrowIfCancellationRequested(); Statuses++; if (FailFirst && Statuses == 1) throw new UuCliException(FailureKind, "fake"); return Task.FromResult(Status); }
         public Task<BoostOperationData> StopHeroesBoostAsync(CancellationToken token = default) { Stops++; throw new Exception("No rollback permitted"); }
     }
 }

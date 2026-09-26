@@ -50,8 +50,9 @@ public sealed record HeroesBoostStatus(bool IsBoosting, string Status, string? G
     public string? GameId { get; init; }
     public string? ZoneId { get; init; }
     public string? ServerId { get; init; }
+    public static string Evidence(string? actual, string expected) => actual == null ? "Missing" : actual == expected ? "PresentMatch" : "PresentMismatch";
     public bool Matches(Configuration.UuCliOptions options) => IsReady && GameId == options.GameId &&
-        ZoneId == options.ZoneId && ServerId == options.ServerId;
+        (ZoneId == null || ZoneId == options.ZoneId) && (ServerId == null || ServerId == options.ServerId);
 }
 
 public enum CliFailureKind { MissingExecutable, LaunchFailed, Timeout, InvalidData, Rejected }
