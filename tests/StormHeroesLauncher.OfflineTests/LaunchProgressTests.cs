@@ -41,8 +41,8 @@ public static class LaunchProgressTests
         check(typeof(LaunchProgressSnapshot).GetProperties().Select(p => p.Name).Order().SequenceEqual(new[] { "Percentage", "State" }) &&
             typeof(LaunchProgress).GetEvent("Changed")!.EventHandlerType == typeof(Action<LaunchProgressSnapshot>), "public state model exposes only semantic state and progress, no PID/HWND/diagnostic data");
         string[] chinese = ["正在准备…", "正在启动网易 UU…", "正在准备加速器…", "正在加速《风暴英雄》…", "正在启动暴雪游戏平台…",
-            "正在等待暴雪游戏平台…", "正在启动《风暴英雄》…", "正在准备进入游戏…", "启动完成", "启动失败"];
-        check(Enum.GetValues<LaunchState>().Select(LaunchProgressText.For).SequenceEqual(chinese), "all ten Chinese labels are exact single-line presentation text");
+            "正在等待暴雪游戏平台…", "正在启动《风暴英雄》…", "正在准备进入游戏…", "启动完成", "启动失败", "已取消"];
+        check(Enum.GetValues<LaunchState>().Select(LaunchProgressText.For).SequenceEqual(chinese), "all Chinese labels include distinct cancellation presentation");
 
         check(StartupRouting.ShowLaunchProgress([], false, true), "normal valid launch selects progress window");
         check(!StartupRouting.ShowLaunchProgress([], true, true), "Shift Settings route excludes progress");
@@ -85,7 +85,7 @@ public static class LaunchProgressTests
                 _ => Task.CompletedTask, _ => Task.CompletedTask, () => { }, logger, cancelled).RunAsync(token.Token); }
             catch (OperationCanceledException) { }
         }
-        check(cancelled.Current.State == LaunchState.Failed, "existing cancellation maps to Failed without adding cancellation behavior");
+        check(cancelled.Current.State == LaunchState.Cancelled, "cooperative cancellation is distinct from failure");
         var deniedState = new LaunchProgress(); var deniedHost = new FakeTrayHost(); var deniedCli = new ProgressFakeCli();
         var deniedUu = new UuElevationFlow(logger, deniedHost, new FakeElevation(deniedHost) { Code = 1223 }, @"C:\Fake\uu_launcher.exe", deniedState);
         var deniedBoost = new HeroesBoostWorkflow(deniedUu.EnsureAsync, deniedCli, options, logger, deniedState);

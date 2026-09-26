@@ -8,9 +8,16 @@ using StormHeroesLauncher.Services;
 if (args.FirstOrDefault() == "--fake-child")
 {
     Console.OutputEncoding = Encoding.UTF8;
-    if (args[1] == "wait")
+    if (args[1] == "cancel-survival")
     {
-        await Task.Delay(TimeSpan.FromSeconds(60));
+        await File.WriteAllTextAsync(args[2] + ".started", "started");
+        await Task.Delay(800);
+        await File.WriteAllTextAsync(args[2] + ".finished", "finished");
+        return;
+    }
+    if (args[1] is "wait" or "short-wait")
+    {
+        await Task.Delay(TimeSpan.FromSeconds(args[1] == "wait" ? 60 : 1));
         return;
     }
     Console.WriteLine(args[2]);
@@ -120,7 +127,7 @@ await Fails(async () => await runner.RunAsync(self, ["--fake-child", "wait"], Ti
     CliFailureKind.Timeout, "process timeout");
 using (var cancel = new CancellationTokenSource(300))
 {
-    try { await runner.RunAsync(self, ["--fake-child", "wait"], TimeSpan.FromSeconds(10), cancel.Token); throw new Exception("expected cancellation"); }
+    try { await runner.RunAsync(self, ["--fake-child", "short-wait"], TimeSpan.FromSeconds(10), cancel.Token); throw new Exception("expected cancellation"); }
     catch (OperationCanceledException) { Assert(true, "process cancellation"); }
 }
 
@@ -264,8 +271,10 @@ PortableTests.Run(Assert);
 await ObserverBuildTests.Run(Assert);
 await LaunchProgressTests.Run(logger, Assert);
 await HeroesReadinessTests.Run(logger, Assert);
+await WarmCancelTests.Run(logger, Assert);
 #if DEVELOPER_OBSERVER
 await ObserverTests.Run(Assert);
+await UuStartupObserverTests.Run(Assert);
 #endif
 Console.WriteLine($"OFFLINE TESTS PASSED: {passed}. No UU CLI was invoked.");
 

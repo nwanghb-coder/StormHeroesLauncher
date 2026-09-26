@@ -1,6 +1,9 @@
 # StormHeroesLauncher — Stage 2: Feature Complete
 
-Current development version: **0.3.0-dev.4**, on `stage2-feature-complete`.
+Current development version: **0.3.0-dev.5**, on `stage2-feature-complete`.
+Dev.5 adds strict warm-state reuse, focused-window Esc cancellation and developer-only read-only
+UU startup-window evidence. See [decision rules and manual acceptance](docs/DEV-5.md), including
+the fallback when CLI status omits zone/server identifiers.
 Developer Observer v1 is implemented behind an explicit compile-time build property; normal builds
 exclude its implementation. See [Observer build and daily-use instructions](docs/OBSERVER.md).
 Compact borderless progress, stable game-window readiness and bounded preparation-dialog hiding are

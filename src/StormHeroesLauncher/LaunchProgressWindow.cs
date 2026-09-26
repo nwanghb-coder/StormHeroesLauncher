@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using System.Windows.Input;
 using StormHeroesLauncher.Models;
 
 namespace StormHeroesLauncher;
@@ -13,11 +14,13 @@ public sealed class LaunchProgressWindow : Window
     private readonly TextBlock percentage = new() { FontSize = 13, Width = 40, TextAlignment = TextAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
     private readonly ProgressBar bar = new() { Minimum = 0, Maximum = 100, Height = 12, IsIndeterminate = false, VerticalAlignment = VerticalAlignment.Center };
     private bool closingAllowed, finishing, closed;
+    private readonly Action? cancel;
     public LaunchProgressSnapshot Displayed { get; private set; }
 
-    public LaunchProgressWindow(LaunchProgress progress)
+    public LaunchProgressWindow(LaunchProgress progress, Action? cancel = null)
     {
         this.progress = progress;
+        this.cancel = cancel;
         Displayed = progress.Current;
         Title = "StormHeroesLauncher";
         Icon = LauncherIcon.Load();
@@ -34,6 +37,18 @@ public sealed class LaunchProgressWindow : Window
         panel.Children.Add(row); panel.Children.Add(status); Content = panel;
         Apply();
         progress.Changed += OnProgress;
+    }
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && cancel != null && !closed &&
+            progress.Current.State is not (LaunchState.GameReady or LaunchState.Failed or LaunchState.Cancelled))
+        {
+            e.Handled = true;
+            progress.Report(LaunchState.Cancelled);
+            cancel();
+            _ = FinishAsync();
+        }
+        base.OnPreviewKeyDown(e);
     }
     private void OnProgress(LaunchProgressSnapshot _)
     {

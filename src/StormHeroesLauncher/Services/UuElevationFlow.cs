@@ -107,6 +107,7 @@ public sealed class UuElevationFlow(AppLogger logger,IUuTrayHost host,IUuElevati
             var target = host.FindMain();
             if (target == null) { logger.Write("UU elevation flow: State=AlreadyTray HelperRequested=False Action=None; no visible verified main window"); return "UU 加速器：已运行"; }
             logger.Write("UU elevation flow: State=RunningVisible HelperRequested=False Action=TrayOnly_NormalAttempt");
+            token.ThrowIfCancellationRequested();
             var normal = host.Close(target); logger.WriteOperation("UU normal tray result",normal);
             if (!host.Running()) return "UU 加速器：托盘操作后 UU 已退出，请检查 UU 关闭行为设置";
             if (normal.ExitCode != 0)

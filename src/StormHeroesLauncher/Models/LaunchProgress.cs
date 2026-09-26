@@ -3,7 +3,7 @@ namespace StormHeroesLauncher.Models;
 public enum LaunchState
 {
     Initializing, StartingUU, PreparingUU, Boosting, StartingBattleNet,
-    WaitingForBattleNet, StartingHeroes, PreparingHeroes, GameReady, Failed
+    WaitingForBattleNet, StartingHeroes, PreparingHeroes, GameReady, Failed, Cancelled
 }
 
 public sealed record LaunchProgressSnapshot(LaunchState State, int Percentage);
@@ -26,9 +26,10 @@ public sealed class LaunchProgress
     {
         lock (gate)
         {
-            if (!Enum.IsDefined(state) || current.State is LaunchState.GameReady or LaunchState.Failed || state == current.State) return;
-            int value = state == LaunchState.Failed ? current.Percentage : Percentage(state);
-            if (state != LaunchState.Failed && value < current.Percentage) return;
+            if (!Enum.IsDefined(state) || current.State is LaunchState.GameReady or LaunchState.Failed or LaunchState.Cancelled || state == current.State) return;
+            bool terminal = state is LaunchState.Failed or LaunchState.Cancelled;
+            int value = terminal ? current.Percentage : Percentage(state);
+            if (!terminal && value < current.Percentage) return;
             current = new(state, value);
             Log(current);
             // Diagnostics/presentation cannot change launch success, including a broken subscriber.
@@ -58,7 +59,7 @@ public static class LaunchProgressText
         LaunchState.PreparingUU => "正在准备加速器…", LaunchState.Boosting => "正在加速《风暴英雄》…",
         LaunchState.StartingBattleNet => "正在启动暴雪游戏平台…", LaunchState.WaitingForBattleNet => "正在等待暴雪游戏平台…",
         LaunchState.StartingHeroes => "正在启动《风暴英雄》…", LaunchState.PreparingHeroes => "正在准备进入游戏…",
-        LaunchState.GameReady => "启动完成", LaunchState.Failed => "启动失败",
+        LaunchState.GameReady => "启动完成", LaunchState.Failed => "启动失败", LaunchState.Cancelled => "已取消",
         _ => throw new ArgumentOutOfRangeException(nameof(state))
     };
 }

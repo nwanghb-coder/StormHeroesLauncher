@@ -6,6 +6,39 @@ namespace StormHeroesLauncher.Services;
 public sealed class BattleNetService(AppLogger logger, string ExecutablePath, bool manageWindows = false, Models.LaunchProgress? progress = null)
 {
     public static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
+    public bool ReusedExisting { get; private set; }
+    public Task<bool> TryReuseAsync(CancellationToken token) => Task.Run(async () =>
+    {
+        ReusedExisting = false;
+        try
+        {
+            bool running = DesktopProcessState.Find("Battle.net").Count > 0;
+            logger.Write($"WarmFastPath BattleNetRunning={running}");
+            ReusedExisting = running && await ConfirmExistingAsync(
+                () => FindReadyWindow(DesktopProcessState.Find("Battle.net"), true),
+                t => Task.Delay(500, t), token);
+            logger.Write(ReusedExisting ? "WarmFastPath BattleNet=AlreadyReady BattleNetReady=True" :
+                "WarmFastPath Decision=Fallback Reason=BattleNetNotReady");
+            return ReusedExisting;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        { logger.Write($"WarmFastPath Decision=Fallback Reason=BattleNetProxyUnknown ErrorType={ex.GetType().Name}"); return false; }
+    }, token);
+    // The same existing proxy: three identical qualified window samples, no login-state claim.
+    public static async Task<bool> ConfirmExistingAsync(Func<IntPtr> find, Func<CancellationToken, Task> delay, CancellationToken token)
+    {
+        IntPtr previous = IntPtr.Zero;
+        for (int i = 0; i < 3; i++)
+        {
+            token.ThrowIfCancellationRequested();
+            IntPtr current = find();
+            if (current == IntPtr.Zero || i > 0 && current != previous) return false;
+            previous = current;
+            if (i < 2) await delay(token);
+        }
+        return true;
+    }
     public void ValidateInstallation()
     {
         if (!File.Exists(ExecutablePath)) throw new FileNotFoundException($"Battle.net 文件不存在：{ExecutablePath}");
@@ -22,9 +55,11 @@ public sealed class BattleNetService(AppLogger logger, string ExecutablePath, bo
             ValidateInstallation();
             if (DesktopProcessState.Find("Battle.net").Count == 0)
             {
+                token.ThrowIfCancellationRequested();
                 logger.Write($"正常权限启动 Battle.net：{ExecutablePath}");
                 progress?.Report(Models.LaunchState.StartingBattleNet);
                 early?.MarkLaunch();
+                token.ThrowIfCancellationRequested();
                 using var process = Process.Start(new ProcessStartInfo(ExecutablePath)
                 {
                     UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(ExecutablePath)!

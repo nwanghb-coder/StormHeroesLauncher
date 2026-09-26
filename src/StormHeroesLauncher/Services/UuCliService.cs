@@ -66,7 +66,7 @@ public sealed class UuCliService(UuCliOptions options, AppLogger logger, ICliPro
         if (selected.Ping is < 0 || selected.PacketLoss is < 0 or > 100) throw Invalid();
         return new(data.IsBoosting == true && state != "not_boosting", state,
             selected.GameName, selected.NodeName, selected.NodeId, selected.NodeMode,
-            selected.Ping, selected.PacketLoss);
+            selected.Ping, selected.PacketLoss) { GameId = selected.GameId, ZoneId = selected.ZoneId, ServerId = selected.ServerId };
     }
 
     private void VerifyGameId(string? id)

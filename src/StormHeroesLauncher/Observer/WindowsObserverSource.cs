@@ -122,9 +122,21 @@ public sealed class WindowsObserverSource(InstallationScope scope) : IObserverSo
         return result;
     }
     public IReadOnlyList<(Family Family, FileMetadata File)> Files(IReadOnlyList<RelatedProcess> processes) => scope.Snapshot(processes);
+    public IReadOnlyList<UuStartupWindow> StartupWindows(IReadOnlyList<RelatedProcess> processes)
+    {
+        var owners = processes.ToDictionary(p => p.Identity.Pid);
+        return Windows(processes).Select(w =>
+        {
+            StartupBounds? bounds = Native.GetWindowRect(new IntPtr(w.Hwnd), out var rect)
+                ? new(rect.Left, rect.Top, Math.Max(0, rect.Right - rect.Left), Math.Max(0, rect.Bottom - rect.Top)) : null;
+            return new UuStartupWindow(owners[w.Pid], w, bounds);
+        }).ToArray();
+    }
 
     private static class Native
     {
+        [StructLayout(LayoutKind.Sequential)] internal struct Rect { public int Left, Top, Right, Bottom; }
+        [DllImport("user32.dll")] internal static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         internal struct ProcessEntry
         {

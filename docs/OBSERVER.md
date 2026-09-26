@@ -1,8 +1,11 @@
-# Developer Observer — current package 0.3.0-dev.4
+# Developer Observer — current package 0.3.0-dev.5
 
 Initially implemented in 0.3.0-dev.2. Dev.4 separates the bounded tail into a developer-only
 process, freeing the launch mutex for warm relaunch. JSONL schema version remains 1.
 The explicit game diagnostic is separate from passive observation: see [HEROES-PREP.md](HEROES-PREP.md).
+Dev.5 adds a separate bounded UU cold-start sampler, sharing the JSONL envelope but using an
+independent file/session. It never changes windows or labels them as confirmed splashes.
+See [polling, fields and acceptance](DEV-5.md#developer-only-startup-window-observation).
 
 This local developer build records passive UU/Battle.net update evidence while the normal
 launcher is used. It cannot start, stop, pause, accelerate or configure an update. It adds no
@@ -31,8 +34,8 @@ The script uses the existing Portable publish profiles and verifies the two-EXE 
 including observer type presence/absence inside the actual bundled managed assembly.
 It refuses to overwrite populated artifact folders. Outputs:
 
-- `artifacts/Stage2-0.3.0-dev.4-Normal/`
-- `artifacts/Stage2-0.3.0-dev.4-Observer/`
+- `artifacts/Stage2-0.3.0-dev.5-Normal/`
+- `artifacts/Stage2-0.3.0-dev.5-Observer/`
 
 Equivalent MSBuild selection is `-p:DeveloperObserver=false` or `-p:DeveloperObserver=true` on
 `dotnet build`, `dotnet run` (tests), or `dotnet publish`. Publishing needs `-p:PublishProfile=Portable`

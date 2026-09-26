@@ -1,7 +1,8 @@
-# Stage 2 progress and readiness — 0.3.0-dev.4
+# Stage 2 progress and readiness — 0.3.0-dev.5
 
 Both packages use the compact progress window. Stage 3 visual design has not started.
-UU/CLI, single-UAC, Battle.net tray handling and Switcher launch arguments remain unchanged.
+Dev.5 skips confirmed reusable UU/Battle.net work and adds cooperative Esc; see [DEV-5.md](DEV-5.md).
+Single-UAC, cold Battle.net handling and Switcher launch arguments remain unchanged.
 Preparation suppression was enabled only after the authorized direct-game test demonstrated safe
 hiding and a distinct stable main window. See [HEROES-PREP.md](HEROES-PREP.md).
 
@@ -23,6 +24,7 @@ Subscriber failures cannot fail launch processing. Percentages are stage markers
 | PreparingHeroes | 90% | 正在准备进入游戏… |
 | GameReady | 100% | 启动完成 |
 | Failed | Retained | 启动失败 |
+| Cancelled | Retained | 已取消 |
 
 Process detection leaves PreparingHeroes active. GameReady requires the same PID, process creation
 time and HWND to have a visible, enabled, ownerless, non-hung main window continuously across samples
@@ -46,6 +48,8 @@ It has 12-DIP margins, a 14-DIP semibold product name above a 12-DIP-high bar, a
 in a 40-DIP column on the right, and centered 11-DIP single-line status below. There is no body icon,
 title bar, close button, resize control or action button. System colors remain. It is not topmost
 and never repeatedly activates itself. Alt+F4 does not introduce workflow cancellation.
+Esc while the progress window has focus requests cooperative cancellation, makes Cancelled terminal
+and closes progress without the failure dialog. It does not roll back or kill already-issued work.
 
 Import and Settings routing retain precedence. Progress starts only after normal launch routing
 is confirmed; discovery/CLI preparation for deciding Settings recovery remains before it.
@@ -67,20 +71,23 @@ Correlation state restarts in each file. Normal builds exclude worker and diagno
 ## Build and validation
 
 Use tools/Publish-Stage2.ps1 and tools/Publish-Stage2.ps1 -DeveloperObserver. They create
-artifacts/Stage2-0.3.0-dev.4-Normal/ and artifacts/Stage2-0.3.0-dev.4-Observer/, refuse populated
+artifacts/Stage2-0.3.0-dev.5-Normal/ and artifacts/Stage2-0.3.0-dev.5-Observer/, refuse populated
 output folders and create no ZIP. The two-EXE self-contained x64 portable layout is unchanged.
-Offline validation: 285 normal / 347 Observer checks. Tests cover stable readiness, ownership,
+Dev.5 offline validation: 303 normal / 373 Observer checks. Tests cover stable readiness, ownership,
 nonfatal bounded hiding, forward-only progress, borderless WPF rendering/lifecycle and independent
 tail handoff with mutex reacquisition from a different thread. Full launch-chain and DPI/focus
 acceptance remain manual; direct Heroes-only tests are recorded separately.
 
-Both portable packages passed bundle/runtime/x64/layout verification. Packaged normal assembly:
+Historical dev.4 packages passed bundle/runtime/x64/layout verification. Packaged normal assembly:
 ObserverTypes=0; developer assembly: ObserverTypes=29. Two actual packaged workers observed only
 empty fixture roots concurrently for 12 seconds, wrote separate summaries and exited successfully
 despite the workflow mutex already being held by a pre-existing dev.3 launcher. The normal package
 rejected both developer modes with exit code 2. No external app was launched by this worker check.
 
 ## Manual acceptance procedure
+
+Dev.4 was broadly accepted manually by the user. For the added dev.5 scenarios, use the
+[exact warm, Esc and startup-observation procedure](DEV-5.md#exact-manual-acceptance) first.
 
 1. Preserve frozen/prior builds. Copy the entire new package, including app/WindowHelper, to a
    separate folder and point the test shortcut at its root EXE. Use existing valid settings.
@@ -106,4 +113,4 @@ rejected both developer modes with exit code 2. No external app was launched by 
 9. Check 100%, 125% and 150% DPI where available: one-line status, readable text, no clipped controls,
    no repeated focus stealing. Report version, scenario, stage and relevant logs for any failure.
 
-The full manual acceptance sequence has not been run automatically.
+Dev.5 real acceptance has not been run automatically.

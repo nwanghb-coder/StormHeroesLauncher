@@ -31,6 +31,7 @@ public sealed class HeroesProcessService(AppLogger logger, string SwitcherPath, 
         var before = HeroesWindowProbe.Processes().Select(p => p.Pid).ToHashSet();
         long launchStarted = DateTime.UtcNow.ToFileTimeUtc();
         progress?.Report(Models.LaunchState.StartingHeroes);
+        token.ThrowIfCancellationRequested();
         using var switcher = Process.Start(info);
         if (switcher == null) throw new InvalidOperationException("HeroesSwitcher 未返回启动进程。");
         IntPtr parentHandle = switcher.Handle;

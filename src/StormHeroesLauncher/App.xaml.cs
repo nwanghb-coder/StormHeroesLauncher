@@ -27,11 +27,13 @@ public partial class App : Application
         if (e.Args.FirstOrDefault() is "--test-heroes-prep" or "--observer-tail") { Shutdown(2); return; }
         bool shiftHeld = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
         var logger = new AppLogger();
+        using var cancellation = new CancellationTokenSource();
         Mutex? mutex = null; bool owned = false; int exitCode = 0;
         LaunchProgress? progress = null;
         LaunchProgressWindow? progressWindow = null;
 #if DEVELOPER_OBSERVER
         Observer.ObserverHost? observer = null;
+        Observer.UuStartupObserver? startupObserver = null;
 #endif
         try
         {
@@ -73,12 +75,13 @@ public partial class App : Application
                 progress = new LaunchProgress(logger.Write);
                 try
                 {
-                    progressWindow = new LaunchProgressWindow(progress);
+                    progressWindow = new LaunchProgressWindow(progress, cancellation.Cancel);
                     progressWindow.Show();
                     await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
                 }
                 catch (Exception uiError) { logger.Write($"Progress UI unavailable: {uiError.GetType().Name}; launch continues."); }
             }
+            cancellation.Token.ThrowIfCancellationRequested();
             settings.RequireValid(); store.Save(settings);
             logger.WriteOperation("已通过启动前检查", settings);
             var options = new UuCliOptions { CliPath = settings.UuCliPath }; options.Validate();
@@ -88,21 +91,26 @@ public partial class App : Application
             var windows = new WindowPolicy(logger, (app, token) => Task.Run(() => BattleNetTray.CloseAsync(logger, token), token));
 
             var cli = new UuCliService(options, logger, new ValidatedCliRunner(cliValidation, new CliProcessRunner()));
-            var boost = new HeroesBoostWorkflow(uu.DetectOrStartAsync, cli, options, logger, progress);
+            var boost = new HeroesBoostWorkflow(uu.DetectOrStartAsync, cli, options, logger, progress, UuService.IsRunningAsync);
             var battleNet = new BattleNetService(logger, settings.BattleNetPath, settings.BattleNetWindowMode == BattleNetWindowMode.Minimized, progress);
             var heroes = new HeroesProcessService(logger, settings.HeroesSwitcherPath, progress);
 #if DEVELOPER_OBSERVER
             logger.Write("ObserverBuild=True; read-only developer observation enabled.");
             observer = Observer.ObserverHost.Start(settings.UuLauncherPath, settings.BattleNetPath, logger.Write);
+            if (progress != null) progress.Changed += snapshot =>
+            {
+                if (snapshot.State == LaunchState.StartingUU && !cancellation.IsCancellationRequested)
+                    startupObserver ??= Observer.UuStartupObserver.Start(settings.UuLauncherPath, settings.BattleNetPath, cancellation.Token, logger.Write);
+            };
 #endif
             var workflow = new HeroesLaunchWorkflow(heroes.IsRunningAsync,
                 token => boost.StartAsync(logger.Write, token),
                 async token => { await battleNet.EnsureReadyAsync(token); await windows.BattleNetAsync(settings.BattleNetWindowMode, token); },
-                async token => { await windows.BattleNetAsync(settings.BattleNetWindowMode, token); await heroes.LaunchAndWaitAsync(token);
+                async token => { if (!battleNet.ReusedExisting) await windows.BattleNetAsync(settings.BattleNetWindowMode, token); await heroes.LaunchAndWaitAsync(token);
                     logger.Write("游戏进程已确认，复查启动期间可能恢复的外部窗口。");
 
-                    await windows.BattleNetAsync(settings.BattleNetWindowMode, token); }, settings.RequireValid, logger, progress, heroes.WaitForExistingUiAsync);
-            await workflow.RunAsync(CancellationToken.None);
+                    if (!battleNet.ReusedExisting) await windows.BattleNetAsync(settings.BattleNetWindowMode, token); }, settings.RequireValid, logger, progress, heroes.WaitForExistingUiAsync, battleNet.TryReuseAsync);
+            await workflow.RunAsync(cancellation.Token);
 #if DEVELOPER_OBSERVER
             // Await only bounded flush/process dispatch, never the detached worker's observation lifetime.
             Task observerTail = observer?.DetachTailAsync(settings.UuLauncherPath, settings.BattleNetPath) ?? Task.CompletedTask;
@@ -112,6 +120,12 @@ public partial class App : Application
             await observerTail;
 #endif
             logger.Write("流程完成，启动器退出；保留 UU、战网及游戏运行。");
+        }
+        catch (Exception) when (cancellation.IsCancellationRequested)
+        {
+            progress?.Report(LaunchState.Cancelled);
+            logger.Write("LaunchCancelled Reason=Esc; no rollback, stop-boost or external process termination.");
+            await FinishProgressAsync(progressWindow, logger);
         }
         catch (Exception ex)
         {
@@ -129,10 +143,14 @@ public partial class App : Application
         finally
         {
             try { progressWindow?.CloseForShutdown(); } catch { }
+            // Release on the owning WPF thread before bounded observer teardown, including Esc.
+            if (owned) { mutex!.ReleaseMutex(); owned = false; }
+            mutex?.Dispose();
 #if DEVELOPER_OBSERVER
+            if (startupObserver != null) await startupObserver.StopAsync();
             if (observer != null) await observer.StopAsync();
 #endif
-            if (owned) mutex!.ReleaseMutex(); mutex?.Dispose(); Shutdown(exitCode);
+            Shutdown(exitCode);
         }
     }
     private static async Task FinishProgressAsync(LaunchProgressWindow? window, AppLogger logger)

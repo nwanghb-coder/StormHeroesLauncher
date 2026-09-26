@@ -4,20 +4,46 @@ using StormHeroesLauncher.Models;
 namespace StormHeroesLauncher.Services;
 
 public sealed class HeroesBoostWorkflow(Func<CancellationToken, Task<string>> ensureUu,
-    IUuCliService cli, UuCliOptions options, AppLogger logger, LaunchProgress? progress = null)
+    IUuCliService cli, UuCliOptions options, AppLogger logger, LaunchProgress? progress = null,
+    Func<CancellationToken, Task<bool>>? isUuRunning = null)
 {
     public async Task<HeroesBoostStatus> StartAsync(Action<string> reportUu, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
+        if (isUuRunning != null)
+        {
+            bool running = await isUuRunning(token);
+            logger.Write($"WarmFastPath UUProcessRunning={running}");
+            if (running)
+            {
+                try
+                {
+                    var existing = await cli.GetHeroesBoostStatusAsync(token);
+                    token.ThrowIfCancellationRequested();
+                    if (existing.Matches(options) && await isUuRunning(token))
+                    { logger.Write("WarmFastPath UU=AlreadyBoosting UUTargetBoosting=True"); return existing; }
+                    logger.Write("WarmFastPath Decision=Fallback Reason=UuTargetNotConfirmed");
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                catch (Exception ex) { logger.Write($"WarmFastPath Decision=Fallback Reason=UuStatusUnknown ErrorType={ex.GetType().Name}"); }
+            }
+        }
+        token.ThrowIfCancellationRequested();
         reportUu("UU 加速器：正在检测 / 等待启动…");
         var result = await ensureUu(token);
+        token.ThrowIfCancellationRequested();
         reportUu(result);
         if (result is not ("UU 加速器：已运行" or "UU 加速器：启动成功"))
             throw new InvalidOperationException(result);
         token.ThrowIfCancellationRequested();
         progress?.Report(LaunchState.PreparingUU);
-        await PollAsync(readyOnly: true, token);
+        var status = await PollAsync(readyOnly: true, token);
+        token.ThrowIfCancellationRequested();
+        if (status.Matches(options))
+        { logger.Write("WarmFastPath UU=AlreadyBoosting UUTargetBoosting=True"); return status; }
         // Never retry start automatically: an uncertain response may already have changed acceleration.
         progress?.Report(LaunchState.Boosting);
+        token.ThrowIfCancellationRequested();
         await cli.StartHeroesBoostAsync(token);
         return await PollAsync(readyOnly: false, token);
     }

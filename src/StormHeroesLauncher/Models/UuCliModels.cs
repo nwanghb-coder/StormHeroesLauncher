@@ -24,6 +24,8 @@ public sealed class BoostOperationData
 public class BoostDetails
 {
     public string? GameId { get; init; }
+    public string? ZoneId { get; init; }
+    public string? ServerId { get; init; }
     public string? GameName { get; init; }
     public string? Status { get; init; }
     public string? RegionId { get; init; }
@@ -45,6 +47,11 @@ public sealed record HeroesBoostStatus(bool IsBoosting, string Status, string? G
     string? NodeName, string? NodeId, string? NodeMode, double? Ping, double? PacketLoss)
 {
     public bool IsReady => IsBoosting && string.Equals(Status, "boosting", StringComparison.OrdinalIgnoreCase);
+    public string? GameId { get; init; }
+    public string? ZoneId { get; init; }
+    public string? ServerId { get; init; }
+    public bool Matches(Configuration.UuCliOptions options) => IsReady && GameId == options.GameId &&
+        ZoneId == options.ZoneId && ServerId == options.ServerId;
 }
 
 public enum CliFailureKind { MissingExecutable, LaunchFailed, Timeout, InvalidData, Rejected }
