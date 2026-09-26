@@ -9,6 +9,22 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+#if DEVELOPER_OBSERVER
+        if (e.Args.FirstOrDefault() == "--observer-tail")
+        {
+            int result = 3;
+            try { result = await Observer.ObserverTail.RunAsync(e.Args); } catch { }
+            Shutdown(result); return;
+        }
+        if (e.Args.FirstOrDefault() == "--test-heroes-prep")
+        {
+            int result = 2;
+            try { if (e.Args.Length == 2) result = await Task.Run(() => Observer.DeveloperHeroesPrep.RunAsync(e.Args[1])); }
+            catch { result = 3; }
+            Shutdown(result); return; // No settings, launch mutex, UU, Battle.net or elevated helper.
+        }
+#endif
+        if (e.Args.FirstOrDefault() is "--test-heroes-prep" or "--observer-tail") { Shutdown(2); return; }
         bool shiftHeld = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
         var logger = new AppLogger();
         Mutex? mutex = null; bool owned = false; int exitCode = 0;
@@ -85,11 +101,11 @@ public partial class App : Application
                 async token => { await windows.BattleNetAsync(settings.BattleNetWindowMode, token); await heroes.LaunchAndWaitAsync(token);
                     logger.Write("游戏进程已确认，复查启动期间可能恢复的外部窗口。");
 
-                    await windows.BattleNetAsync(settings.BattleNetWindowMode, token); }, settings.RequireValid, logger, progress);
+                    await windows.BattleNetAsync(settings.BattleNetWindowMode, token); }, settings.RequireValid, logger, progress, heroes.WaitForExistingUiAsync);
             await workflow.RunAsync(CancellationToken.None);
 #if DEVELOPER_OBSERVER
-            // Start the unchanged observer tail now; the progress window does not wait for it.
-            Task observerTail = observer?.AfterGameAsync() ?? Task.CompletedTask;
+            // Await only bounded flush/process dispatch, never the detached worker's observation lifetime.
+            Task observerTail = observer?.DetachTailAsync(settings.UuLauncherPath, settings.BattleNetPath) ?? Task.CompletedTask;
 #endif
             await FinishProgressAsync(progressWindow, logger);
 #if DEVELOPER_OBSERVER

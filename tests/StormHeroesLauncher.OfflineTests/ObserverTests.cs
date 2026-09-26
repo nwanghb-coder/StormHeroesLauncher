@@ -5,6 +5,40 @@ public static class ObserverTests
 {
     public static async Task Run(Action<bool, string> check)
     {
+        // Main session can end while a detached fake tail remains active. Use different OS threads
+        // for mutex acquisition: recursive acquisition on the same thread would prove nothing.
+        using var tailEnd = new ManualResetEventSlim();
+        using var tailStarted = new ManualResetEventSlim();
+        string mutexName = @"Local\StormHeroesLauncher.OfflineTail." + Guid.NewGuid().ToString("N");
+        var detached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        bool mainAcquired = false, warmAcquired = false;
+        var mainThread = new Thread(() =>
+        {
+            using var mutex = new Mutex(false, mutexName);
+            mainAcquired = mutex.WaitOne(0);
+            try
+            {
+                var host = ObserverHost.ForTest(async (_, _, token) => await Task.Delay(Timeout.Infinite, token), _ => { });
+                host.DetachTailAsync("", "", () =>
+                {
+                    new Thread(() => { tailStarted.Set(); tailEnd.Wait(); }) { IsBackground = true }.Start();
+                }).GetAwaiter().GetResult();
+            }
+            finally { if (mainAcquired) mutex.ReleaseMutex(); detached.SetResult(); }
+        }) { IsBackground = true };
+        mainThread.Start(); await detached.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        check(mainAcquired && tailStarted.Wait(2000) && !tailEnd.IsSet, "main session flush/handoff completes before observer tail ends");
+        var warmThread = new Thread(() =>
+        {
+            using var mutex = new Mutex(false, mutexName); warmAcquired = mutex.WaitOne(0);
+            if (warmAcquired) mutex.ReleaseMutex();
+        });
+        warmThread.Start(); warmThread.Join(); tailEnd.Set();
+        check(warmAcquired, "warm launcher can acquire workflow mutex while independent tail remains active");
+        var tailInfo = ObserverTail.CreateStartInfo(@"C:\Package\StormHeroesLauncher.exe", @"C:\UU\uu_launcher.exe", @"C:\Battle.net\Battle.net.exe", Guid.NewGuid().ToString("N"), 120);
+        check(!tailInfo.UseShellExecute && tailInfo.CreateNoWindow && tailInfo.ArgumentList[0] == "--observer-tail" && tailInfo.ArgumentList.Count == 5,
+            "detached worker uses explicit narrow developer route without shell or elevation");
+        check(await ObserverTail.RunAsync(["--observer-tail", "", "", "bad", "121"]) == 2, "worker rejects invalid lifetime/session before observation");
         var clock = new FakeObserverClock();
         var sink = new MemoryObserverSink();
         var engine = new ObserverEngine(sink, clock);
@@ -113,10 +147,10 @@ public static class ObserverTests
             _ => { steps.Add("game"); return Task.CompletedTask; },
             () => steps.Add("validate"), new StormHeroesLauncher.Services.AppLogger(Path.Combine(AppContext.BaseDirectory, "observer-workflow-test.log")));
         await workflow.RunAsync(CancellationToken.None);
-        await host.AfterGameAsync();
+        await host.DetachTailAsync("", "", () => { });
         check(steps.SequenceEqual(new[] { "check", "validate", "boost", "battle", "game" }) && reports.Any(s => s == "ObserverFailure=IOException") && !reports.Any(s => s.Contains("SECRET")), "observer failure preserves existing launch sequence and never propagates into launch");
         var throwingReporter = ObserverHost.ForTest((_, _, _) => throw new IOException(), _ => throw new Exception());
-        await throwingReporter.AfterGameAsync();
+        await throwingReporter.DetachTailAsync("", "", () => { });
         check(true, "diagnostic logger failure also isolated");
 
         var uncertainClock = new FakeObserverClock(); var uncertainSink = new MemoryObserverSink(); var uncertain = new ObserverEngine(uncertainSink, uncertainClock);

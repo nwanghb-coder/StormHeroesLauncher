@@ -1,7 +1,8 @@
-# Developer Observer v1 — current package 0.3.0-dev.3
+# Developer Observer — current package 0.3.0-dev.4
 
-Initially implemented in 0.3.0-dev.2. The observer implementation/schema remain unchanged in
-0.3.0-dev.3; the new progress window closes before the existing background observation tail ends.
+Initially implemented in 0.3.0-dev.2. Dev.4 separates the bounded tail into a developer-only
+process, freeing the launch mutex for warm relaunch. JSONL schema version remains 1.
+The explicit game diagnostic is separate from passive observation: see [HEROES-PREP.md](HEROES-PREP.md).
 
 This local developer build records passive UU/Battle.net update evidence while the normal
 launcher is used. It cannot start, stop, pause, accelerate or configure an update. It adds no
@@ -30,8 +31,8 @@ The script uses the existing Portable publish profiles and verifies the two-EXE 
 including observer type presence/absence inside the actual bundled managed assembly.
 It refuses to overwrite populated artifact folders. Outputs:
 
-- `artifacts/Stage2-0.3.0-dev.3-Normal/`
-- `artifacts/Stage2-0.3.0-dev.3-Observer/`
+- `artifacts/Stage2-0.3.0-dev.4-Normal/`
+- `artifacts/Stage2-0.3.0-dev.4-Observer/`
 
 Equivalent MSBuild selection is `-p:DeveloperObserver=false` or `-p:DeveloperObserver=true` on
 `dotnet build`, `dotnet run` (tests), or `dotnet publish`. Publishing needs `-p:PublishProfile=Portable`
@@ -50,7 +51,7 @@ dotnet run --project tests/StormHeroesLauncher.OfflineTests/StormHeroesLauncher.
 
 Observation starts on a background task immediately before the normal launch workflow, after
 configuration validation/CLI preparation. Settings, failed onboarding and shortcut imports do not
-start it. A successful workflow confirms the game is running (including an already-running game);
+start it. A successful workflow confirms a stable main game window (including an already-running game);
 observation then continues for at most **120 seconds**, capped at **15 minutes total**. The tail
 starts after the existing final window handling completes; no launch steps were reordered.
 Launch failure requests immediate stop before showing the existing error dialog.
@@ -58,9 +59,15 @@ Shutdown waits at most two seconds for the observer. A stalled native/filesystem
 keep the application alive indefinitely; an abandoned background task may leave an incomplete log.
 The observer deadline never cancels the launch workflow or a user's UAC prompt.
 
-The existing duplicate-launch mutex stays held during the developer observation tail. Therefore
-another launcher/settings invocation exits as a duplicate until that tail ends. The launcher exits
-automatically afterward. This is disclosed in the developer-only Safety wording.
+At success the main session stops/flushes (at most two seconds), then the same developer executable
+starts with --observer-tail. This narrow route runs before mutex acquisition and does not create UI,
+write settings, start external apps or elevate. The main launcher releases its mutex and exits without
+waiting for the tail. The worker auto-exits after its remaining bounded tail, plus at most two seconds
+teardown. No service/task/autorun is installed. Observer startup failure never changes launch success.
+Warm relaunch and Settings can proceed while an older worker observes. Separate sessions/files allow
+coexistence; ObserverTailStarted records parentSessionId and maximumSeconds. Each file has its own
+baseline and summary; update correlation does not persist across the handoff. The 15-minute observation
+budget is shared by subtracting elapsed main-session time before dispatching the worker.
 
 - Process and visible-window snapshots: 500 ms delay between completed samples (not a real-time trace).
 - File metadata: startup, process transitions with a minimum two-second interval, every ten seconds,

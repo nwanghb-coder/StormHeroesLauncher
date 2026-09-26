@@ -9,8 +9,8 @@ namespace StormHeroesLauncher;
 public sealed class LaunchProgressWindow : Window
 {
     private readonly LaunchProgress progress;
-    private readonly TextBlock status = new() { FontSize = 14, TextWrapping = TextWrapping.NoWrap };
-    private readonly TextBlock percentage = new() { Width = 42, TextAlignment = TextAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock status = new() { FontSize = 11, TextWrapping = TextWrapping.NoWrap, TextAlignment = TextAlignment.Center };
+    private readonly TextBlock percentage = new() { FontSize = 13, Width = 40, TextAlignment = TextAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
     private readonly ProgressBar bar = new() { Minimum = 0, Maximum = 100, Height = 12, IsIndeterminate = false, VerticalAlignment = VerticalAlignment.Center };
     private bool closingAllowed, finishing, closed;
     public LaunchProgressSnapshot Displayed { get; private set; }
@@ -21,18 +21,17 @@ public sealed class LaunchProgressWindow : Window
         Displayed = progress.Current;
         Title = "StormHeroesLauncher";
         Icon = LauncherIcon.Load();
-        Width = 420; SizeToContent = SizeToContent.Height;
+        Width = 340; SizeToContent = SizeToContent.Height; WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize; WindowStartupLocation = WindowStartupLocation.CenterScreen;
         SetResourceReference(BackgroundProperty, SystemColors.WindowBrushKey);
         SetResourceReference(ForegroundProperty, SystemColors.WindowTextBrushKey);
-        var panel = new StackPanel { Margin = new Thickness(22) };
-        panel.Children.Add(new TextBlock { Text = "StormHeroesLauncher", FontSize = 17, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 18) });
-        panel.Children.Add(status);
-        var row = new Grid { Margin = new Thickness(0, 16, 0, 2) };
+        var panel = new StackPanel { Margin = new Thickness(12) };
+        panel.Children.Add(new TextBlock { Text = "StormHeroesLauncher", FontSize = 14, FontWeight = FontWeights.SemiBold });
+        var row = new Grid { Margin = new Thickness(0, 10, 0, 6) };
         row.ColumnDefinitions.Add(new ColumnDefinition());
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         row.Children.Add(bar); Grid.SetColumn(percentage, 1); row.Children.Add(percentage);
-        panel.Children.Add(row); Content = panel;
+        panel.Children.Add(row); panel.Children.Add(status); Content = panel;
         Apply();
         progress.Changed += OnProgress;
     }

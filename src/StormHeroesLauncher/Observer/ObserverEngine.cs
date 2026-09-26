@@ -4,9 +4,9 @@ public sealed record VersionPoint(string Path, string? FileVersion, string? Prod
 public sealed record UpdateEvidence(string UpdateSessionId, string State, string Confidence, bool Inferred,
     double FirstEvidenceMs, double DurationMs, string[] Evidence);
 
-public sealed class ObserverEngine(IObserverSink sink, IObserverClock clock)
+public sealed class ObserverEngine(IObserverSink sink, IObserverClock clock, string? sessionId = null)
 {
-    public string SessionId { get; } = Guid.NewGuid().ToString("N");
+    public string SessionId { get; } = sessionId ?? Guid.NewGuid().ToString("N");
     private readonly DateTimeOffset started = clock.UtcNow;
     private Dictionary<string, RelatedProcess> processes = new();
     private Dictionary<string, WindowMetadata> windows = new();

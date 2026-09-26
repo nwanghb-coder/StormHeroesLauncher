@@ -106,6 +106,7 @@ public sealed class ObserverHost
     private readonly Task worker;
     private readonly Action<string> report;
     private int stopped;
+    private string sessionId = Guid.NewGuid().ToString("N");
     private ObserverHost(Func<IObserverClock, ObserverBudget, CancellationToken, Task> run, Action<string> report)
     {
         this.report = report;
@@ -121,25 +122,38 @@ public sealed class ObserverHost
     {
         try
         {
-            return new(async (clock, budget, token) =>
+            string runId = Guid.NewGuid().ToString("N");
+            var host = new ObserverHost(async (clock, budget, token) =>
             {
                 var scope = new InstallationScope(uu, battleNet, new ObserverFiles());
                 using var sink = new JsonlObserverSink();
-                var engine = new ObserverEngine(sink, clock);
+                var engine = new ObserverEngine(sink, clock, runId);
                 await new ObserverRuntime(new WindowsObserverSource(scope), engine, clock, budget).RunAsync(token);
             }, report);
+            host.sessionId = runId;
+            return host;
         }
         catch (Exception ex) { try { report("ObserverFailure=" + ex.GetType().Name); } catch { } return null; }
     }
     // Fake-only seam: tests exercise the same isolation/lifetime boundary without native observation.
     public static ObserverHost ForTest(Func<IObserverClock, ObserverBudget, CancellationToken, Task> run, Action<string> report) => new(run, report);
-    public async Task AfterGameAsync()
+    public async Task DetachTailAsync(string uu, string battleNet, Action? launchForTest = null)
     {
-        budget.GameDetected(clock.Elapsed);
-        Report("ObserverBuild=True; game detected; bounded post-launch observation active.");
-        TimeSpan remaining = budget.Deadline - clock.Elapsed;
-        if (remaining > TimeSpan.Zero) await Task.WhenAny(worker, Task.Delay(remaining)).ConfigureAwait(false);
+        // Flush/end the main observer session before handing off. Never await the tail's lifetime.
         await StopAsync().ConfigureAwait(false);
+        int seconds = (int)Math.Clamp((ObserverBudget.Maximum - clock.Elapsed).TotalSeconds, 0, 120);
+        if (seconds == 0) return;
+        try
+        {
+            if (launchForTest != null) launchForTest();
+            else
+            {
+                using var child = Process.Start(ObserverTail.CreateStartInfo(Environment.ProcessPath!, uu, battleNet, sessionId, seconds));
+                if (child == null) throw new InvalidOperationException();
+            }
+            Report("ObserverBuild=True; detached observer tail; launcher lifetime independent.");
+        }
+        catch (Exception ex) { Report("ObserverTailFailure=" + ex.GetType().Name); }
     }
     public async Task StopAsync()
     {
@@ -151,5 +165,36 @@ public sealed class ObserverHost
                 Report("ObserverFailure=StopTimeout; background sampler abandoned at application exit.");
         }
         catch (Exception ex) { Report("ObserverFailure=" + ex.GetType().Name); }
+    }
+}
+
+public static class ObserverTail
+{
+    public static ProcessStartInfo CreateStartInfo(string executable, string uu, string battleNet, string parent, int seconds)
+    {
+        if (!Path.IsPathFullyQualified(executable) || !Path.GetFileName(executable).Equals("StormHeroesLauncher.exe", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Unexpected worker executable");
+        var info = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = AppContext.BaseDirectory };
+        foreach (string argument in new[] { "--observer-tail", uu, battleNet, parent, seconds.ToString(System.Globalization.CultureInfo.InvariantCulture) }) info.ArgumentList.Add(argument);
+        return info;
+    }
+    public static async Task<int> RunAsync(string[] args)
+    {
+        if (args.Length != 5 || !Guid.TryParseExact(args[3], "N", out _) || !int.TryParse(args[4], out int seconds) || seconds is < 1 or > 120) return 2;
+        using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
+        // No launcher mutex, settings writes, windows, external launches or elevated helper in this entry point.
+        var worker = Task.Run(async () =>
+        {
+            var clock = new ObserverClock(); var budget = new ObserverBudget(); budget.GameDetected(TimeSpan.Zero);
+            var scope = new InstallationScope(args[1], args[2], new ObserverFiles());
+            using var sink = new JsonlObserverSink();
+            var engine = new ObserverEngine(sink, clock);
+            engine.Emit(Family.Observer, "ObserverTailStarted", new { parentSessionId = args[3], maximumSeconds = seconds });
+            await new ObserverRuntime(new WindowsObserverSource(scope), engine, clock, budget).RunAsync(cancel.Token);
+        });
+        await Task.WhenAny(worker, Task.Delay(TimeSpan.FromSeconds(seconds)));
+        cancel.Cancel();
+        if (await Task.WhenAny(worker, Task.Delay(2000)) != worker) return 3;
+        try { await worker; return 0; } catch { return 3; }
     }
 }

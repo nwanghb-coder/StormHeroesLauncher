@@ -1,9 +1,11 @@
 # StormHeroesLauncher — Stage 2: Feature Complete
 
-Current development version: **0.3.0-dev.3**, on `stage2-feature-complete`.
+Current development version: **0.3.0-dev.4**, on `stage2-feature-complete`.
 Developer Observer v1 is implemented behind an explicit compile-time build property; normal builds
 exclude its implementation. See [Observer build and daily-use instructions](docs/OBSERVER.md).
-Minimal launch progress UI v1 is enabled in both builds; see [state mapping and manual acceptance](docs/PROGRESS.md).
+Compact borderless progress, stable game-window readiness and bounded preparation-dialog hiding are
+enabled in both builds; see [state mapping and manual acceptance](docs/PROGRESS.md). The developer
+Observer tail runs separately and permits warm relaunch. See [prep diagnostics](docs/HEROES-PREP.md).
 Final Stage 3 visual design remains deferred.
 
 See [PROJECT-STATE.md](PROJECT-STATE.md) for current behavior and safety boundaries,

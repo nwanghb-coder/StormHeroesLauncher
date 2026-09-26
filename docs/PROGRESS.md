@@ -1,111 +1,109 @@
-# Minimal Progress UI v1 — 0.3.0-dev.3
+# Stage 2 progress and readiness — 0.3.0-dev.4
 
-This is functional Stage 2 feedback, not the final Stage 3 design. Both normal and developer
-Observer packages include it. The existing Heroes preparing-game-data dialog stays visible.
+Both packages use the compact progress window. Stage 3 visual design has not started.
+UU/CLI, single-UAC, Battle.net tray handling and Switcher launch arguments remain unchanged.
+Preparation suppression was enabled only after the authorized direct-game test demonstrated safe
+hiding and a distinct stable main window. See [HEROES-PREP.md](HEROES-PREP.md).
 
 ## State contract
 
-`Models/LaunchProgress.cs` defines LaunchState, the immutable LaunchProgressSnapshot(State,
-Percentage), the thread-safe LaunchProgress publisher and the presentation text mapping.
-There are no WPF types, observer dependencies or technical diagnostic fields in this contract.
-Subscribers cannot fail launch processing. Repeated/backward stages are ignored; terminal states
-cannot be replaced. Failure retains the current percentage. Values are stage markers, not elapsed
-time estimates. Each accepted transition logs `LaunchState: <state> Progress=<value>` once.
+The WPF-independent LaunchProgress model is forward-only and thread-safe. Duplicate/backward
+notifications are ignored; terminal states cannot change. Failure retains the current percentage.
+Subscriber failures cannot fail launch processing. Percentages are stage markers, not time estimates.
 
-| State | Progress | Chinese status | Existing boundary |
-|---|---:|---|---|
-| Initializing | 5% | 正在准备… | Normal launch route confirmed; final validation/save |
-| StartingUU | 15% | 正在启动网易 UU… | Existing UU running check selects cold-start path |
-| PreparingUU | 25% | 正在准备加速器… | Warm UU handling or successful UU ensure; CLI readiness poll |
-| Boosting | 40% | 正在加速《风暴英雄》… | Before the existing single CLI start request and boost-status polling |
-| StartingBattleNet | 55% | 正在启动暴雪游戏平台… | Immediately before actual Battle.net launch |
-| WaitingForBattleNet | 65% | 正在等待暴雪游戏平台… | Existing readiness loop and subsequent tray handling |
-| StartingHeroes | 80% | 正在启动《风暴英雄》… | Immediately before the existing Switcher call |
-| PreparingHeroes | 90% | 正在准备进入游戏… | Switcher started; existing game-process polling/final window handling |
-| GameReady | 100% | 启动完成 | Existing workflow success, including already-running game |
-| Failed | Retained | 启动失败 | Existing exception/cancellation path; original exception preserved |
+| State | Progress | Chinese status |
+|---|---:|---|
+| Initializing | 5% | 正在准备… |
+| StartingUU | 15% | 正在启动网易 UU… |
+| PreparingUU | 25% | 正在准备加速器… |
+| Boosting | 40% | 正在加速《风暴英雄》… |
+| StartingBattleNet | 55% | 正在启动暴雪游戏平台… |
+| WaitingForBattleNet | 65% | 正在等待暴雪游戏平台… |
+| StartingHeroes | 80% | 正在启动《风暴英雄》… |
+| PreparingHeroes | 90% | 正在准备进入游戏… |
+| GameReady | 100% | 启动完成 |
+| Failed | Retained | 启动失败 |
 
-GameReady confirms the existing game-process condition, not server login. No new readiness or
-success criterion is added. Warm UU skips StartingUU; existing Battle.net skips StartingBattleNet;
-an already-running game can go directly from Initializing to GameReady.
+Process detection leaves PreparingHeroes active. GameReady requires the same PID, process creation
+time and HWND to have a visible, enabled, ownerless, non-hung main window continuously across samples
+for at least 1,500 ms. Its class must be `Heroes of the Storm` (a window class, never a title), its
+rectangle at least 640×360, and its styles must exclude WS_CHILD and WS_EX_TOOLWINDOW. No visible
+ownerless `#32770` window may remain in that same process. Sampling is every 100 ms plus query time.
+The game must belong to the current Windows session and configured installation's Versions subtree;
+there is no BaseXXXXX constant. PID/creation/path/session are revalidated on each observation.
+
+The existing 30-second process-detection bound remains. UI confirmation has a further 120-second
+bound. Timeout/exit yields Failed and the existing error dialog, without killing the game. This
+confirms local window readiness, not server login, authentication or rendered game content.
+An already-running game skips launch/boost mutations but still waits for its real main window;
+its dialogs are never hidden by this invocation. A minimized pre-existing game must be restored
+manually before a qualifying visible main window can be confirmed.
 
 ## Window and routing
 
-The 420-DIP centered window uses the application icon, system colors, product name, one status
-line and a determinate horizontal progress bar with a percentage. It is not topmost and has no
-custom artwork or action buttons. Native close/Alt+F4 requests are ignored during launch; they
-do not introduce cancellation or kill external programs. Existing UAC cancellation still works.
+The centered, 340-DIP-wide borderless window uses WindowStyle=None and ResizeMode=NoResize.
+It has 12-DIP margins, a 14-DIP semibold product name above a 12-DIP-high bar, a 13-DIP percentage
+in a 40-DIP column on the right, and centered 11-DIP single-line status below. There is no body icon,
+title bar, close button, resize control or action button. System colors remain. It is not topmost
+and never repeatedly activates itself. Alt+F4 does not introduce workflow cancellation.
 
-Import processing and Settings routing retain their existing precedence. The window is created
-immediately after normal launch routing is confirmed, before final validation/save and before UU
-startup. The existing automatic discovery/CLI preparation needed to decide whether Settings must
-open remains before window creation. This avoids flashing a launch window on recovery/Settings
-routes. Shift, --settings, imports and About never create a progress window.
-
-Services publish semantic stages through an optional model reference; they never reference the
-window or WPF controls. LaunchProgressWindow subscribes to state and marshals background updates
-with Dispatcher.BeginInvoke. It reads the latest snapshot when dispatched, so queued notifications
-cannot paint an older stage. Existing asynchronous waits remain asynchronous.
-
-On success the window displays 100% / 启动完成 for 350 ms, then closes automatically. This brief
-display happens after launch succeeds; it never delays game launch. On failure it displays 启动失败
-for 150 ms, closes, then the existing error dialog and diagnostics remain available. There is no
-second progress error message. WPF uses the existing OnExplicitShutdown policy. Cleanup detaches
-subscriptions. Presentation errors are logged without changing the launch result.
+Import and Settings routing retain precedence. Progress starts only after normal launch routing
+is confirmed; discovery/CLI preparation for deciding Settings recovery remains before it.
+Shift, --settings, shortcut imports and About never create progress. Background notifications use
+the WPF dispatcher and read the latest snapshot. Success displays 100% for 350 ms; failure displays
+Failed for 150 ms, then closes before the existing error dialog. Presentation errors do not change
+the workflow result.
 
 ## Observer coexistence
 
-Observer implementation and JSONL schema are unchanged. Normal builds still exclude observer
-types. In developer builds, the existing two-minute observation tail starts immediately after
-workflow success; the progress window closes independently after its brief completion display.
-Closing this window does not stop observation or keep the UI resident. The existing mutex stays
-held during the observer tail, as documented in OBSERVER.md. No UI states are added to JSONL.
+The main developer observer session stops/flushes with a two-second bound, then launches the same
+developer executable in --observer-tail mode. That route executes before the workflow mutex and
+has no UI, settings writes, external launches or elevation. The main launcher closes progress,
+releases the mutex and exits without waiting for the tail. Workers have independent session IDs/files
+and carry parentSessionId. They can coexist with warm relaunch; each observes for at most 120 seconds,
+reduced by the original session's remaining 15-minute budget, plus up to two seconds teardown.
+Correlation state restarts in each file. Normal builds exclude worker and diagnostic implementation.
 
 ## Build and validation
 
-```powershell
-./tools/Publish-Stage2.ps1
-./tools/Publish-Stage2.ps1 -DeveloperObserver
-```
+Use tools/Publish-Stage2.ps1 and tools/Publish-Stage2.ps1 -DeveloperObserver. They create
+artifacts/Stage2-0.3.0-dev.4-Normal/ and artifacts/Stage2-0.3.0-dev.4-Observer/, refuse populated
+output folders and create no ZIP. The two-EXE self-contained x64 portable layout is unchanged.
+Offline validation: 285 normal / 347 Observer checks. Tests cover stable readiness, ownership,
+nonfatal bounded hiding, forward-only progress, borderless WPF rendering/lifecycle and independent
+tail handoff with mutex reacquisition from a different thread. Full launch-chain and DPI/focus
+acceptance remain manual; direct Heroes-only tests are recorded separately.
 
-These produce self-contained x64 two-EXE packages in:
-
-- `artifacts/Stage2-0.3.0-dev.3-Normal/`
-- `artifacts/Stage2-0.3.0-dev.3-Observer/`
-
-Validation (SDK 10.0.401): **274 normal / 332 Observer offline checks passed**. Both publishes passed
-bundle, runtime, x64, layout and path checks. The bundled normal assembly contains zero observer
-types; the developer assembly contains 27. Offscreen progress layout was rendered and inspected.
-
-The script refuses to overwrite populated folders and creates no ZIP. Both test configurations
-use the existing commands in OBSERVER.md. Tests use fake launch dependencies and offscreen WPF
-rendering; no real UU/Battle.net/Heroes/WindowHelper/UAC is run. Native startup interaction, focus,
-UAC desktop switching, DPI scaling and external-app timing require manual acceptance.
+Both portable packages passed bundle/runtime/x64/layout verification. Packaged normal assembly:
+ObserverTypes=0; developer assembly: ObserverTypes=29. Two actual packaged workers observed only
+empty fixture roots concurrently for 12 seconds, wrote separate summaries and exited successfully
+despite the workflow mutex already being held by a pre-existing dev.3 launcher. The normal package
+rejected both developer modes with exit code 2. No external app was launched by this worker check.
 
 ## Manual acceptance procedure
 
-1. Preserve the frozen release and prior build folders. Copy the entire desired new package to a
-   separate location, keeping `app/StormHeroesLauncher.WindowHelper.exe` alongside the root EXE.
-   Point the daily-use shortcut at the new root EXE. Settings continue to use LOCALAPPDATA.
-2. Ensure UU and Battle.net are logged in, Heroes is installed/current, and both applications have
-   the previously required native close-to-tray settings. Test on a normal desktop session.
-3. Cold launch: manually exit UU/Battle.net, double-click the launcher, and approve the standard UAC.
-   Confirm one UAC at most, responsive centered progress, forward-only stage percentages, working
-   acceleration/tray behavior, and game launch. The Heroes preparation dialog must remain visible.
-4. During the Battle.net-to-game wait, confirm the 65/80/90% states describe the current stage.
-   Progress must not advance on a timer while the underlying operation is still waiting.
-5. Confirm 100% / 启动完成 briefly appears and the progress window closes automatically. Normal
-   launcher exits; Observer launcher continues its bounded background tail without a progress window.
-6. Repeat with UU/Battle.net already in tray; verify safe stage skipping and no duplicate launches.
-   With Heroes already running, verify direct completion and no acceleration change.
-7. Cold-start again and reject UAC: confirm 启动失败, clean window closure and the existing error
-   dialog/log. No automatic UAC retry or game launch should occur.
-8. Confirm Shift + double-click, --settings, About, shortcut imports and invalid-configuration
-   recovery show no progress window. Avoid changing valid configuration just to induce an error.
-9. For Observer, allow its two-minute tail to finish, then inspect the separate JSONL summary.
-   Check normal launcher logs for concise LaunchState entries. Existing observer failure must not
-   block progress or game launch. Do not induce failures by changing external application files.
-10. Check 100%, 125% and 150% display scaling if available: status stays on one line and controls
-    remain readable. Report the build, scenario, visible stage and relevant local logs on failure.
+1. Preserve frozen/prior builds. Copy the entire new package, including app/WindowHelper, to a
+   separate folder and point the test shortcut at its root EXE. Use existing valid settings.
+   First close any old launcher instance. During validation, dev.3 Observer PID 8772 (started
+   2026-09-26 17:36:51 local time) still held the workflow mutex and was deliberately left untouched.
+   Confirm its identity/path before closing; a later process may reuse that PID.
+2. Ensure UU/Battle.net are installed and logged in, Heroes is current, UU close hides to tray,
+   and Battle.net X minimizes to the system tray. Use a normal desktop session.
+3. Cold launch: exit UU/Battle.net manually, double-click the launcher and approve at most one UAC.
+   Confirm acceleration and tray behavior remain correct and progress is centered and responsive.
+4. Observe 80% then 90%. The temporary preparation dialog should hide; compact progress stays until
+   the stable game main window is present. Confirm 100% briefly, then automatic progress close.
+5. With Observer, close Heroes normally immediately after successful launch, leave UU/Battle.net in
+   tray, and launch again within 120 seconds while the old observer worker is alive. A new progress
+   workflow and game launch must run normally. Only overlapping active launch workflows remain
+   protected by the mutex; an old observer tail must not cause duplicate rejection.
+6. Let both tails exit. Inspect separate JSONL files under LOCALAPPDATA/StormHeroesLauncher/Observer:
+   distinct session IDs, ObserverTailStarted with parentSessionId, and terminal SessionSummary.
+7. Repeat warm launch with Normal: no observer worker/log session should be created. With Heroes
+   already running and visible, confirm readiness without duplicate launch/boost changes.
+8. Reject one cold-start UAC: Failed briefly, progress closes, original error appears; no retry/game.
+   Verify Shift/--settings, About and shortcut imports never flash progress. Do not corrupt settings.
+9. Check 100%, 125% and 150% DPI where available: one-line status, readable text, no clipped controls,
+   no repeated focus stealing. Report version, scenario, stage and relevant logs for any failure.
 
-No manual acceptance steps above were executed automatically.
+The full manual acceptance sequence has not been run automatically.

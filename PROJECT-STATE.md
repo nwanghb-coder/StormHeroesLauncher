@@ -2,7 +2,11 @@
 
 ## 1. Current milestone
 
-Stage 2 / Feature Complete is active on `stage2-feature-complete`, currently `0.3.0-dev.3`. Minimal Progress UI v1 is implemented in both builds, backed by a WPF-independent semantic state model. Developer Observer v1 remains behind `DeveloperObserver=true`; normal builds physically exclude observer code. See docs/PROGRESS.md, docs/OBSERVER.md, docs/STAGE-2.md and docs/GIT-WORKFLOW.md. Final Stage 3 visual design has not started. Subsequent development builds use 0.3.0-dev.4, etc., followed when appropriate by alpha, beta, rc and stable. New development does not use Friend naming.
+Stage 2 / Feature Complete is active on `stage2-feature-complete`, currently `0.3.0-dev.4`. Both builds have compact borderless progress, stable main-window readiness and bounded preparation-dialog hiding. Developer observation uses a separate bounded worker that does not hold the launch mutex. Normal builds physically exclude observer and developer diagnostic code. See docs/PROGRESS.md, docs/OBSERVER.md, docs/HEROES-PREP.md, docs/STAGE-2.md and docs/GIT-WORKFLOW.md. Stage 3 visual design has not started. Later builds advance sequentially from dev.5, followed when appropriate by alpha/beta/rc/stable. New development does not use Friend naming.
+
+Dev.4 validation (2026-09-26): 285 normal / 347 Observer offline checks passed. Three explicitly authorized direct Switcher tests passed, hiding the ownerless #32770 preparation dialog without abnormal game exit and confirming a stable main window around 18 seconds. The final test uses the shared production policy and confirmed graceful cleanup; the first two used exact test-owned termination after a graceful-close attempt. No UU/Battle.net launch, helper or UAC was invoked by these tests. See docs/HEROES-PREP.md for evidence and docs/PROGRESS.md for remaining full-launch/warm-relaunch/DPI acceptance. Outputs: artifacts/Stage2-0.3.0-dev.4-Normal and artifacts/Stage2-0.3.0-dev.4-Observer. Local commit only; no push, merge, tag or ZIP.
+
+Both dev.4 packages passed portable verification (normal ObserverTypes=0; developer ObserverTypes=29). Two actual packaged tail workers ran concurrently against empty fixture roots for 12 seconds, bypassed the already-held workflow mutex, wrote separate summaries and exited. Normal package rejects developer modes with exit 2. A pre-existing dev.3 Observer launcher (PID 8772, started 17:36:51) was left untouched; it still holds the workflow mutex and must be closed by the user before full dev.4 warm-launch acceptance. Offline tests separately prove main-session handoff releases a mutex while the tail is still active.
 
 Progress UI v1 validation (2026-09-26): 274 normal and 332 observer offline checks passed. Offscreen WPF rendering and dispatcher/lifecycle checks passed. Both self-contained x64 portable packages passed static validation (normal ObserverTypes=0; developer ObserverTypes=27). Outputs: artifacts/Stage2-0.3.0-dev.3-Normal and artifacts/Stage2-0.3.0-dev.3-Observer. No real UU/Battle.net/game/WindowHelper/UAC was run. No push, tag, merge or public ZIP for this work; manual acceptance remains pending.
 
@@ -85,7 +89,7 @@ No DLL injection, hooks, UI Automation/MSAA launch actions, process-memory read/
 
 ## 10. Current visual behavior
 
-UU and Battle.net startup flashes are reduced to the accepted friend-build level, not guaranteed absent in every frame. Heroes' preparing-game-data window intentionally remains visible alongside the new compact progress window. Earlier preparation-window suppression code is not active in the launch flow. Do not silently re-enable suppression. The progress window appears after routing confirms normal launch, before final validation/UU startup; discovery/CLI preparation used to decide Settings routing remains before the window. It reports fixed stage percentages, briefly shows completion for 350 ms, and closes before the developer observer tail ends. Failure briefly shows Failed before closing and preserving the existing error dialog. Settings/import/About routes never show progress.
+UU and Battle.net startup flashes are reduced to the accepted friend-build level, not guaranteed absent in every frame. Dev.4 explicitly authorizes Heroes preparation suppression following successful direct diagnostics. The shared policy hides only visible ownerless #32770 windows of a proven newly launched game process, with bounded nonfatal SW_HIDE attempts. It does not activate the historical helper-based preparation code. Progress remains at 90% until a visible enabled ownerless non-hung main window of class Heroes of the Storm is stable for 1500 ms and no visible preparation dialog remains. The borderless 340-DIP progress window appears after normal routing, before final validation/UU startup; discovery/CLI preparation for Settings routing remains earlier. Success shows 100% for 350 ms; failure briefly shows Failed before preserving the existing error dialog. Settings/import/About routes never show progress.
 
 ## 11. Friend-release accepted behavior
 
@@ -95,13 +99,13 @@ Portable/no installer; no preinstalled .NET; one root user-facing EXE; one doubl
 
 - Windows 10 x64 manually tested; Windows 11 x64 expected, not manually verified.
 - External tray settings are manual; application updates can change external behavior.
-- Heroes preparation dialog remains visible; new progress UI still needs real launch/DPI/focus acceptance.
+- Preparation hiding passed three direct-game tests; full launch/DPI/focus acceptance is still pending. Unknown future main-window classes or a minimized existing game may reach the bounded readiness timeout; the game is left running.
 - Settings needs later redesign; neutral temporary icon is not final branding.
 - No public-release code-signing/authenticity system; release hashes are integrity references only.
 - No multi-accelerator support yet.
-- AboutSafetyTests now validate 0.3.0-dev.3, version-prefixed Build ID and unchanged build-specific Safety text. The historical test remains unchanged on the frozen tag.
+- AboutSafetyTests validate 0.3.0-dev.4, version-prefixed Build ID and build-specific Safety text. Developer Safety discloses separate workers and explicit test-mode cleanup. The frozen tag remains unchanged.
 - Developer Observer v1 is polling-based; short-lived processes/windows and outside-root updater families without a live parent link may be missed. Inferred update sessions are not updater-confirmed results. Real update-scenario validation is pending.
-- Developer observation lasts two minutes after successful launch workflow completion (confirmed game presence), at most 15 minutes total, plus up to two seconds teardown. The existing launch mutex remains held during the tail, so repeat launcher/settings invocations exit as duplicates until it finishes. Progress UI closes independently; normal builds exit after the brief completion display.
+- Developer observation continues in a separate process for at most two minutes after successful stable-window readiness, reduced by the main session's remaining 15-minute budget, plus up to two seconds teardown. The worker route never acquires the launch mutex, and sessions/files are independent with parentSessionId links. Correlation baselines restart at handoff. Main launcher exits after its brief progress completion and bounded flush/dispatch; warm relaunch is no longer blocked by the tail.
 
 ## 13. Future requirements already agreed
 

@@ -107,15 +107,16 @@ public static class LaunchProgressTests
                 window.Close(); closeIgnored = !closed;
                 await Task.Run(() => model.Report(LaunchState.WaitingForBattleNet));
                 await dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
-                updated = window.Displayed.Percentage == 65 && window.Title == "StormHeroesLauncher" && window.Icon != null;
+                updated = window.Displayed.Percentage == 65 && window.Title == "StormHeroesLauncher" && window.Icon != null &&
+                    window.WindowStyle == WindowStyle.None && window.ResizeMode == ResizeMode.NoResize && window.Width == 340 && !window.Topmost;
                 IEnumerable<DependencyObject> Walk(DependencyObject node)
                 { yield return node; foreach (var item in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>()) foreach (var child in Walk(item)) yield return child; }
                 noButtons = !Walk(window).OfType<Button>().Any() && Walk(window).OfType<ProgressBar>().Single().IsIndeterminate == false;
                 // Offscreen render only; no desktop window, native observation or external application is shown.
                 var content = (FrameworkElement)window.Content;
-                content.Measure(new Size(420, double.PositiveInfinity));
-                content.Arrange(new Rect(0, 0, 420, content.DesiredSize.Height)); content.UpdateLayout();
-                var image = new RenderTargetBitmap(420, (int)Math.Ceiling(content.ActualHeight + 44), 96, 96, PixelFormats.Pbgra32);
+                content.Measure(new Size(340, double.PositiveInfinity));
+                content.Arrange(new Rect(0, 0, 340, content.DesiredSize.Height)); content.UpdateLayout();
+                var image = new RenderTargetBitmap(340, (int)Math.Ceiling(content.ActualHeight + 24), 96, 96, PixelFormats.Pbgra32);
                 var background = new DrawingVisual();
                 using (var draw = background.RenderOpen()) draw.DrawRectangle(SystemColors.WindowBrush, null, new Rect(0, 0, image.PixelWidth, image.PixelHeight));
                 image.Render(background); image.Render(content);
